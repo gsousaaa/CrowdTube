@@ -79,15 +79,16 @@ export function CreateCampaignModal() {
           onInput={() => setIsValidated(false)}
           className="space-y-8 px-6 py-6 sm:px-8"
         >
-          <fieldset className="space-y-5">
+          <fieldset>
             <legend className="text-base font-semibold text-white">
               Apresentação da campanha
             </legend>
-            <p className="text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-zinc-500">
               Estes dados serão armazenados offchain pelo backend.
             </p>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="mt-5 space-y-5">
+              <div className="grid gap-5 sm:grid-cols-2">
               <label className="space-y-2 text-sm text-zinc-300">
                 <span>Título</span>
                 <input
@@ -119,9 +120,9 @@ export function CreateCampaignModal() {
                   <option value="other">Outra</option>
                 </select>
               </label>
-            </div>
+              </div>
 
-            <label className="block space-y-2 text-sm text-zinc-300">
+              <label className="block space-y-2 text-sm text-zinc-300">
               <span>Descrição</span>
               <textarea
                 name="description"
@@ -132,9 +133,9 @@ export function CreateCampaignModal() {
                 placeholder="Explique o objetivo da campanha e como as doações serão utilizadas."
                 className="w-full resize-y rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 leading-6 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
               />
-            </label>
+              </label>
 
-            <label className="block space-y-2 text-sm text-zinc-300">
+              <label className="block space-y-2 text-sm text-zinc-300">
               <span>Link do conteúdo no YouTube</span>
               <input
                 name="youtubeUrl"
@@ -143,9 +144,9 @@ export function CreateCampaignModal() {
                 placeholder="https://youtube.com/..."
                 className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
               />
-            </label>
+              </label>
 
-            <fieldset className="space-y-4 rounded-2xl border border-white/10 p-4">
+              <fieldset className="space-y-4 rounded-2xl border border-white/10 p-4">
               <legend className="px-2 text-sm text-zinc-300">Imagem de capa</legend>
 
               <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.04] p-1">
@@ -216,7 +217,8 @@ export function CreateCampaignModal() {
                   </span>
                 </label>
               )}
-            </fieldset>
+              </fieldset>
+            </div>
           </fieldset>
 
           <fieldset className="border-t border-white/10">
