@@ -84,7 +84,7 @@ export function AppSidebar() {
       </div>
 
       <nav aria-label="Área do criador" className="min-w-0 flex-1 lg:mt-8">
-        <ul className="flex gap-2 overflow-x-auto lg:flex-col">
+        <ul className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
           {navigation.map((item) => (
             <li key={item.label} className="group relative">
               <button
