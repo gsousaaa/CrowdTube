@@ -5,6 +5,7 @@ import { FormEvent, MouseEvent, useRef, useState } from "react";
 export function CreateCampaignModal() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isValidated, setIsValidated] = useState(false);
+  const [imageSource, setImageSource] = useState<"upload" | "url">("upload");
 
   function openModal() {
     setIsValidated(false);
@@ -133,29 +134,89 @@ export function CreateCampaignModal() {
               />
             </label>
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-zinc-300">
-                <span>Link do conteúdo no YouTube</span>
-                <input
-                  name="youtubeUrl"
-                  type="url"
-                  required
-                  placeholder="https://youtube.com/..."
-                  className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
-                />
-              </label>
+            <label className="block space-y-2 text-sm text-zinc-300">
+              <span>Link do conteúdo no YouTube</span>
+              <input
+                name="youtubeUrl"
+                type="url"
+                required
+                placeholder="https://youtube.com/..."
+                className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
+              />
+            </label>
 
-              <label className="space-y-2 text-sm text-zinc-300">
-                <span>URL da imagem de capa</span>
-                <input
-                  name="coverImageUrl"
-                  type="url"
-                  required
-                  placeholder="https://..."
-                  className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
-                />
-              </label>
-            </div>
+            <fieldset className="space-y-4 rounded-2xl border border-white/10 p-4">
+              <legend className="px-2 text-sm text-zinc-300">Imagem de capa</legend>
+
+              <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.04] p-1">
+                <label
+                  className={`cursor-pointer rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
+                    imageSource === "upload"
+                      ? "bg-emerald-300 text-zinc-950"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="imageSource"
+                    value="upload"
+                    checked={imageSource === "upload"}
+                    onChange={() => setImageSource("upload")}
+                    className="sr-only"
+                  />
+                  Enviar arquivo
+                </label>
+
+                <label
+                  className={`cursor-pointer rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
+                    imageSource === "url"
+                      ? "bg-emerald-300 text-zinc-950"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="imageSource"
+                    value="url"
+                    checked={imageSource === "url"}
+                    onChange={() => setImageSource("url")}
+                    className="sr-only"
+                  />
+                  Usar link
+                </label>
+              </div>
+
+              {imageSource === "upload" ? (
+                <label className="block space-y-2 text-sm text-zinc-300">
+                  <span>Selecione uma imagem</span>
+                  <input
+                    name="coverImage"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    required
+                    className="block w-full cursor-pointer rounded-xl border border-dashed border-white/20 bg-white/[0.04] p-3 text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-300 file:px-4 file:py-2 file:font-medium file:text-zinc-950 hover:border-emerald-300/40"
+                  />
+                  <span className="block text-xs leading-5 text-zinc-500">
+                    JPG, PNG ou WebP. O backend validará o arquivo e fará o upload
+                    para o bucket S3.
+                  </span>
+                </label>
+              ) : (
+                <label className="block space-y-2 text-sm text-zinc-300">
+                  <span>URL pública da imagem</span>
+                  <input
+                    name="coverImageUrl"
+                    type="url"
+                    required
+                    placeholder="https://exemplo.com/capa.webp"
+                    className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
+                  />
+                  <span className="block text-xs leading-5 text-zinc-500">
+                    O backend deverá baixar, validar e armazenar uma cópia no S3.
+                  </span>
+                </label>
+              )}
+            </fieldset>
           </fieldset>
 
           <fieldset className="space-y-5 border-t border-white/10 pt-7">
