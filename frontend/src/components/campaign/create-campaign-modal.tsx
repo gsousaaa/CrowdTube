@@ -219,7 +219,7 @@ export function CreateCampaignModal() {
             </fieldset>
           </fieldset>
 
-          <fieldset className="border-t border-white/10 pt-7">
+          <fieldset className="border-t border-white/10">
             <legend className="pr-3 text-base font-semibold text-white">
               Meta da campanha
             </legend>
