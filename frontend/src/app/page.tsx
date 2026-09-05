@@ -1,4 +1,5 @@
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { WalletStatus } from "@/components/wallet/wallet-status";
 
 export default function Home() {
   return (
@@ -15,6 +16,7 @@ export default function Home() {
         </div>
 
         <ConnectWalletButton />
+        <WalletStatus />
       </main>
     </div>
   );
