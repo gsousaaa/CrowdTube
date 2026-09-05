@@ -1,4 +1,5 @@
 import { CampaignCard } from "@/components/campaign/campaign-card";
+import { CreateCampaignModal } from "@/components/campaign/create-campaign-modal";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { WalletStatus } from "@/components/wallet/wallet-status";
@@ -49,13 +50,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                title="A criação de campanhas será implementada após o contrato"
-                className="rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-zinc-300 transition hover:border-white/30 hover:text-white"
-              >
-                Criar campanha
-              </button>
+              <CreateCampaignModal />
               <ConnectWalletButton />
             </div>
           </header>
