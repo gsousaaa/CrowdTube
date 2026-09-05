@@ -219,15 +219,15 @@ export function CreateCampaignModal() {
             </fieldset>
           </fieldset>
 
-          <fieldset className="space-y-5 border-t border-white/10 pt-7">
+          <fieldset className="border-t border-white/10 pt-7">
             <legend className="pr-3 text-base font-semibold text-white">
               Meta da campanha
             </legend>
-            <p className="text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-zinc-500">
               A meta será convertida corretamente antes de ser enviada ao contrato.
             </p>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <label className="space-y-2 text-sm text-zinc-300">
                 <span>Meta em ETH</span>
                 <input
