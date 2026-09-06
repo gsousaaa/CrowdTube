@@ -1,69 +1,112 @@
-import Image from "next/image";
+import { CampaignCard } from "@/components/campaign/campaign-card";
+import { CreateCampaignModal } from "@/components/campaign/create-campaign-modal";
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
+import { WalletStatus } from "@/components/wallet/wallet-status";
+
+const campaignExamples = [
+  {
+    category: "Educação",
+    title: "Laboratório aberto de programação",
+    description: "Equipamentos para uma nova série gratuita de aulas práticas.",
+    raised: "0,24 ETH",
+    goal: "0,50 ETH",
+    remaining: "7 dias",
+    wallet: "0xfa6f...49f5",
+  },
+  {
+    category: "Vlogs",
+    title: "Documentário independente",
+    description: "Ajude a financiar viagem, captação e edição do próximo vídeo.",
+    raised: "0,10 ETH",
+    goal: "0,50 ETH",
+    remaining: "20 dias",
+    wallet: "0x3b21...8a10",
+  },
+  {
+    category: "Ciência",
+    title: "Ciência acessível no YouTube",
+    description: "Uma temporada de experimentos explicados de forma simples.",
+    raised: "0,35 ETH",
+    goal: "0,80 ETH",
+    remaining: "2 semanas",
+    wallet: "0x89bc...11d2",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-[radial-gradient(circle_at_bottom_left,_rgba(6,78,59,0.5),_transparent_38%),#020403] px-3 py-6 text-zinc-100 sm:px-6 lg:px-10 lg:py-10">
+      <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] border border-white/15 bg-black/65 shadow-2xl shadow-emerald-950/30 backdrop-blur lg:grid-cols-[76px_1fr]">
+        <AppSidebar />
+
+        <main className="min-w-0 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+          <header className="flex flex-col gap-5 border-b border-white/10 pb-7 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-medium text-emerald-300">CrowdTube</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
+                Financiamento coletivo Web3
+              </h1>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <CreateCampaignModal />
+              <ConnectWalletButton />
+            </div>
+          </header>
+
+          <div className="py-7">
+            <WalletStatus />
+          </div>
+
+          <section aria-labelledby="campaigns-heading">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                  Dados demonstrativos
+                </p>
+                <h2 id="campaigns-heading" className="mt-2 text-xl font-semibold">
+                  Campanhas em destaque
+                </h2>
+              </div>
+
+              <label className="relative block w-full sm:max-w-sm">
+                <span className="sr-only">Buscar campanhas</span>
+                <input
+                  type="search"
+                  placeholder="Buscar campanhas"
+                  className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 pr-11 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
+                />
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1/2 right-4 -translate-y-1/2 text-zinc-500"
+                >
+                  ⌕
+                </span>
+              </label>
+            </div>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {campaignExamples.map((campaign) => (
+                <CampaignCard key={campaign.title} {...campaign} />
+              ))}
+            </div>
+
+            <nav
+              aria-label="Paginação das campanhas"
+              className="mt-8 flex items-center justify-center gap-4 text-sm text-zinc-400"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+              <button type="button" disabled className="disabled:opacity-30">
+                Anterior
+              </button>
+              <span>Página 1 de 1</span>
+              <button type="button" disabled className="disabled:opacity-30">
+                Próxima
+              </button>
+            </nav>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }
