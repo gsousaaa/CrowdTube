@@ -5,8 +5,10 @@ import { sepolia } from "thirdweb/chains";
 import { createWallet } from "thirdweb/wallets";
 
 import { thirdwebClient } from "@/lib/thirdweb/client";
+import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
-const supportedWallets = [createWallet("io.metamask"), createWallet("com.coinbase.wallet")];
+const metamaskWallet = createWallet("io.metamask");
+const coinbaseWallet = createWallet("com.coinbase.wallet");
 
 const ConnectButton = dynamic(
   () => import("thirdweb/react").then((module) => module.ConnectButton),
@@ -24,12 +26,24 @@ const ConnectButton = dynamic(
   },
 );
 
-export function ConnectWalletButton() {
+type ConnectWalletButtonProps = {
+  network?: "sepolia" | "hardhat";
+};
+
+export function ConnectWalletButton({
+  network = "sepolia",
+}: ConnectWalletButtonProps) {
+  const selectedChain = network === "hardhat" ? hardhatLocalChain : sepolia;
+  const supportedWallets =
+    network === "hardhat"
+      ? [metamaskWallet]
+      : [metamaskWallet, coinbaseWallet];
+
   return (
     <ConnectButton
       client={thirdwebClient}
-      chain={sepolia}
-      chains={[sepolia]}
+      chain={selectedChain}
+      chains={[selectedChain]}
       wallets={supportedWallets}
       showAllWallets={false}
       connectButton={{ label: "Conectar carteira" }}
