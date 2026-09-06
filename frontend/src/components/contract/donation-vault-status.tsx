@@ -4,10 +4,6 @@ import { useReadContract } from "thirdweb/react";
 
 import { donationVaultContract } from "@/lib/web3/donation-vault-contract";
 
-function shortenAddress(address: string) {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
 function formatEther(value: bigint) {
   const weiPerEther = BigInt("1000000000000000000");
   const wholePart = value / weiPerEther;
@@ -21,10 +17,6 @@ function formatEther(value: bigint) {
 }
 
 export function DonationVaultStatus() {
-  const owner = useReadContract({
-    contract: donationVaultContract,
-    method: "owner",
-  });
   const campaignId = useReadContract({
     contract: donationVaultContract,
     method: "campaignId",
@@ -34,9 +26,8 @@ export function DonationVaultStatus() {
     method: "totalDonated",
   });
 
-  const isLoading =
-    owner.isLoading || campaignId.isLoading || totalDonated.isLoading;
-  const hasError = owner.isError || campaignId.isError || totalDonated.isError;
+  const isLoading = campaignId.isLoading || totalDonated.isLoading;
+  const hasError = campaignId.isError || totalDonated.isError;
 
   return (
     <section
@@ -78,17 +69,6 @@ export function DonationVaultStatus() {
               Campanha
             </dt>
             <dd className="mt-1 text-sm">#{campaignId.data?.toString()}</dd>
-          </div>
-          <div>
-            <dt className="text-xs uppercase tracking-wider text-zinc-500">
-              Responsável
-            </dt>
-            <dd
-              className="mt-1 font-mono text-sm"
-              title={owner.data?.toString()}
-            >
-              {owner.data ? shortenAddress(owner.data.toString()) : "—"}
-            </dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wider text-zinc-500">
