@@ -1,5 +1,6 @@
 import { CampaignCard } from "@/components/campaign/campaign-card";
 import { CreateCampaignModal } from "@/components/campaign/create-campaign-modal";
+import { DonationVaultStatus } from "@/components/contract/donation-vault-status";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { WalletStatus } from "@/components/wallet/wallet-status";
@@ -55,8 +56,9 @@ export default function Home() {
             </div>
           </header>
 
-          <div className="py-7">
+          <div className="grid gap-4 py-7">
             <WalletStatus />
+            <DonationVaultStatus />
           </div>
 
           <section aria-labelledby="campaigns-heading">
