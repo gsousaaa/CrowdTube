@@ -5,16 +5,13 @@ import { sepolia } from "thirdweb/chains";
 import {
   useActiveAccount,
   useActiveWallet,
-  useConnectModal,
+  useConnect,
   useDisconnect,
 } from "thirdweb/react";
 import { createWallet } from "thirdweb/wallets";
 
 import { thirdwebClient } from "@/lib/thirdweb/client";
 import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
-
-const metamaskWallet = createWallet("io.metamask");
-const coinbaseWallet = createWallet("com.coinbase.wallet");
 
 type ConnectWalletButtonProps = {
   network?: "sepolia" | "hardhat";
@@ -29,37 +26,43 @@ export function ConnectWalletButton({
 }: ConnectWalletButtonProps) {
   const account = useActiveAccount();
   const activeWallet = useActiveWallet();
-  const { connect, isConnecting } = useConnectModal();
+  const { connect, isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const [connectionError, setConnectionError] = useState<string>();
+  const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
   const menuRef = useRef<HTMLDetailsElement>(null);
 
   const selectedChain = network === "hardhat" ? hardhatLocalChain : sepolia;
-  const supportedWallets =
-    network === "hardhat"
-      ? [metamaskWallet]
-      : [metamaskWallet, coinbaseWallet];
 
-  async function openWalletSelector() {
+  async function connectWallet(walletType: "metamask" | "coinbase") {
     setConnectionError(undefined);
+    setIsWalletSelectorOpen(false);
+    const selectedWallet =
+      walletType === "metamask"
+        ? createWallet("io.metamask")
+        : createWallet("com.coinbase.wallet");
 
     try {
-      await connect({
-        client: thirdwebClient,
-        chain: selectedChain,
-        wallets: supportedWallets,
-        showAllWallets: false,
-        size: "compact",
-        title: "Conecte sua carteira ao CrowdTube",
+      await connect(async () => {
+        await selectedWallet.connect({
+          client: thirdwebClient,
+          chain: selectedChain,
+        });
+
+        return selectedWallet;
       });
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+
       setConnectionError(
-        "A conexão foi cancelada ou não pôde ser concluída.",
+        message.includes("no accounts available")
+          ? "Nenhuma conta foi liberada. Desbloqueie a extensão e autorize uma conta para este site."
+          : "A conexão foi cancelada ou não pôde ser concluída.",
       );
     }
   }
 
-  async function handleSwitchWallet() {
+  function handleSwitchWallet() {
     if (activeWallet) {
       disconnect(activeWallet);
     }
@@ -68,7 +71,7 @@ export function ConnectWalletButton({
       menuRef.current.open = false;
     }
 
-    await openWalletSelector();
+    setIsWalletSelectorOpen(true);
   }
 
   function handleDisconnect() {
@@ -85,15 +88,40 @@ export function ConnectWalletButton({
 
   if (!account || !activeWallet) {
     return (
-      <div>
+      <div className="relative">
         <button
           type="button"
-          onClick={openWalletSelector}
+          onClick={() => setIsWalletSelectorOpen((isOpen) => !isOpen)}
           disabled={isConnecting}
           className="h-[50px] min-w-[165px] rounded-xl bg-white px-4 font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isConnecting ? "Conectando..." : "Conectar carteira"}
         </button>
+
+        {isWalletSelectorOpen ? (
+          <div className="absolute top-full right-0 z-50 mt-2 w-56 rounded-xl border border-white/10 bg-zinc-950 p-2 shadow-2xl">
+            <p className="px-3 py-2 text-xs uppercase tracking-wider text-zinc-500">
+              Escolha uma carteira
+            </p>
+            <button
+              type="button"
+              onClick={() => void connectWallet("metamask")}
+              className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-200 transition hover:bg-white/10"
+            >
+              MetaMask
+            </button>
+            {network === "sepolia" ? (
+              <button
+                type="button"
+                onClick={() => void connectWallet("coinbase")}
+                className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-200 transition hover:bg-white/10"
+              >
+                Coinbase Wallet
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         {connectionError ? (
           <p role="alert" className="mt-2 max-w-64 text-xs text-red-300">
             {connectionError}
