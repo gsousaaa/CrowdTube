@@ -11,11 +11,15 @@ chave privada ou conexão com a Sepolia é necessária.
 npm run build
 npm test
 npm run deploy:local
+npm run node
+npm run deploy:localhost
 ```
 
 - `build`: compila Solidity e gera bytecode e ABI em `artifacts/`.
 - `test`: cria uma blockchain temporária e executa os testes.
 - `deploy:local`: publica o contrato em uma blockchain temporária usando Ignition.
+- `node`: inicia uma blockchain local persistente em `http://127.0.0.1:8545`.
+- `deploy:localhost`: publica o contrato no node local que já está em execução.
 
 ## Estrutura
 
