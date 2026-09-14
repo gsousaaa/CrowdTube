@@ -1,7 +1,10 @@
+import Link from "next/link";
+
 type SidebarItem = {
   label: string;
   description: string;
   icon: "profile" | "wallet" | "report";
+  href?: string;
 };
 
 const navigation: SidebarItem[] = [
@@ -14,6 +17,7 @@ const navigation: SidebarItem[] = [
     label: "Carteira",
     description: "Saldo recebido e saque de doações",
     icon: "wallet",
+    href: "/admin/wallet",
   },
   {
     label: "Relatórios",
@@ -87,15 +91,25 @@ export function AppSidebar() {
         <ul className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
           {navigation.map((item) => (
             <li key={item.label} className="group relative">
-              <button
-                type="button"
-                aria-disabled="true"
-                aria-label={`${item.label}: ${item.description}`}
-                title={`${item.label} — será implementado em uma próxima etapa`}
-                className="flex size-11 cursor-not-allowed items-center justify-center rounded-xl border border-white/10 text-zinc-500 transition hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-200 focus-visible:border-emerald-300/60 focus-visible:text-emerald-200 focus-visible:outline-none lg:size-12"
-              >
-                <SidebarIcon name={item.icon} />
-              </button>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  aria-label={`${item.label}: ${item.description}`}
+                  className="flex size-11 items-center justify-center rounded-xl border border-white/10 text-zinc-400 transition hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-200 focus-visible:border-emerald-300/60 focus-visible:text-emerald-200 focus-visible:outline-none lg:size-12"
+                >
+                  <SidebarIcon name={item.icon} />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  aria-disabled="true"
+                  aria-label={`${item.label}: ${item.description}`}
+                  title={`${item.label} — será implementado em uma próxima etapa`}
+                  className="flex size-11 cursor-not-allowed items-center justify-center rounded-xl border border-white/10 text-zinc-500 transition hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-200 focus-visible:border-emerald-300/60 focus-visible:text-emerald-200 focus-visible:outline-none lg:size-12"
+                >
+                  <SidebarIcon name={item.icon} />
+                </button>
+              )}
 
               <div className="pointer-events-none absolute top-1/2 left-full z-10 ml-3 hidden w-56 -translate-y-1/2 rounded-xl border border-white/10 bg-zinc-950 p-3 opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
                 <p className="text-sm font-medium text-zinc-100">{item.label}</p>

@@ -73,4 +73,17 @@ export const crowdTubeCampaignsAbi = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    inputs: [
+      {
+        internalType: "uint256[]",
+        name: "campaignIds",
+        type: "uint256[]",
+      },
+    ],
+    name: "withdrawFromCampaigns",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
