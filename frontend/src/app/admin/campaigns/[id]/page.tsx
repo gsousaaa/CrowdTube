@@ -1,25 +1,26 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 
 import { CampaignPublicLink } from "@/components/campaign/campaign-public-link";
 import { CampaignContractStatus } from "@/components/contract/campaign-contract-status";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
-import { campaigns, findCampaignById } from "@/data/campaigns";
+import { useMockCampaigns } from "@/hooks/use-mock-campaigns";
 
-type AdminCampaignDetailsPageProps = {
-  params: Promise<{ id: string }>;
-};
+export default function AdminCampaignDetailsPage() {
+  const { id } = useParams<{ id: string }>();
+  const { campaigns, isLoaded } = useMockCampaigns();
+  const campaign = campaigns.find((item) => item.id === id);
 
-export function generateStaticParams() {
-  return campaigns.map((campaign) => ({ id: campaign.id }));
-}
-
-export default async function AdminCampaignDetailsPage({
-  params,
-}: AdminCampaignDetailsPageProps) {
-  const { id } = await params;
-  const campaign = findCampaignById(id);
+  if (!isLoaded) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#020403] text-zinc-400">
+        Carregando campanha...
+      </main>
+    );
+  }
 
   if (!campaign) notFound();
 
@@ -38,12 +39,24 @@ export default async function AdminCampaignDetailsPage({
                 <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs text-emerald-200">{campaign.category}</span>
                 <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{campaign.title}</h1>
                 <p className="mt-4 max-w-3xl leading-7 text-zinc-400">{campaign.description} Nesta fase, esse conteúdo ainda é demonstrativo e será fornecido pelo backend futuramente.</p>
+                {campaign.youtubeUrl ? (
+                  <a
+                    href={campaign.youtubeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex text-sm text-emerald-300 hover:text-emerald-200"
+                  >
+                    Abrir conteúdo no YouTube ↗
+                  </a>
+                ) : null}
               </div>
 
               <aside aria-label="Imagem da campanha">
                 <div className="flex h-40 items-end rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(52,211,153,0.3),_transparent_42%),linear-gradient(145deg,_#27272a,_#111827)] p-4">
                   <p className="text-xs leading-5 text-zinc-300">
-                    Imagem da campanha será carregada pelo backend/S3
+                    {campaign.imageReference
+                      ? `Imagem: ${campaign.imageReference}`
+                      : "Imagem da campanha será carregada pelo backend/S3"}
                   </p>
                 </div>
               </aside>
