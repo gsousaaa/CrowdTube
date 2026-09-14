@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CampaignPublicLink } from "@/components/campaign/campaign-public-link";
-import { DonationVaultStatus } from "@/components/contract/donation-vault-status";
+import { CampaignContractStatus } from "@/components/contract/campaign-contract-status";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { campaigns, findCampaignById } from "@/data/campaigns";
@@ -55,7 +55,9 @@ export default async function AdminCampaignDetailsPage({
                 goal={campaign.goal}
                 remaining={campaign.remaining}
               />
-              {campaign.hasLocalContract ? <DonationVaultStatus /> : (
+              {campaign.hasLocalContract ? (
+                <CampaignContractStatus campaignId={campaign.id} />
+              ) : (
                 <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                   <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Contrato</p>
                   <h2 className="mt-1 font-medium">Ainda não implantado</h2>

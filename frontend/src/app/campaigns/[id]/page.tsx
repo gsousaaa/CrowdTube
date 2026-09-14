@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DonationForm } from "@/components/campaign/donation-form";
-import { DonationVaultStatus } from "@/components/contract/donation-vault-status";
+import { CampaignContractStatus } from "@/components/contract/campaign-contract-status";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { campaigns, findCampaignById } from "@/data/campaigns";
 
@@ -44,8 +44,12 @@ export default async function PublicCampaignPage({ params }: PublicCampaignPageP
           <div className="mt-8 space-y-5">
             {campaign.hasLocalContract ? (
               <>
-                <DonationForm goal={campaign.goal} remaining={campaign.remaining} />
-                <DonationVaultStatus />
+                <DonationForm
+                  campaignId={campaign.id}
+                  goal={campaign.goal}
+                  remaining={campaign.remaining}
+                />
+                <CampaignContractStatus campaignId={campaign.id} />
               </>
             ) : (
               <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
