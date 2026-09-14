@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 
 import { CampaignPublicLink } from "@/components/campaign/campaign-public-link";
+import { CampaignWithdrawalForm } from "@/components/campaign/campaign-withdrawal-form";
 import { CampaignContractStatus } from "@/components/contract/campaign-contract-status";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
@@ -69,7 +70,10 @@ export default function AdminCampaignDetailsPage() {
                 remaining={campaign.remaining}
               />
               {campaign.hasLocalContract ? (
-                <CampaignContractStatus campaignId={campaign.id} />
+                <>
+                  <CampaignContractStatus campaignId={campaign.id} />
+                  <CampaignWithdrawalForm campaignId={campaign.id} />
+                </>
               ) : (
                 <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                   <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Contrato</p>

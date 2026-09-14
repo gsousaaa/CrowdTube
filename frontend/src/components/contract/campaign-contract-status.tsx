@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { useReadContract } from "thirdweb/react";
 
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
+import { CONTRACT_DATA_UPDATED_EVENT } from "@/lib/web3/contract-events";
 
 function formatEther(value: bigint) {
   const weiPerEther = BigInt("1000000000000000000");
@@ -43,6 +45,21 @@ export function CampaignContractStatus({
     method: "getAvailableBalance",
     params: [onchainCampaignId],
   });
+  const { refetch: refetchCampaign } = campaign;
+  const { refetch: refetchAvailableBalance } = availableBalance;
+
+  useEffect(() => {
+    function refreshContractData() {
+      void refetchCampaign();
+      void refetchAvailableBalance();
+    }
+
+    window.addEventListener(CONTRACT_DATA_UPDATED_EVENT, refreshContractData);
+
+    return () => {
+      window.removeEventListener(CONTRACT_DATA_UPDATED_EVENT, refreshContractData);
+    };
+  }, [refetchCampaign, refetchAvailableBalance]);
 
   const isLoading = campaign.isLoading || availableBalance.isLoading;
   const hasError = campaign.isError || availableBalance.isError;
