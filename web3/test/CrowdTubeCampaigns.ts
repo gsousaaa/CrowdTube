@@ -220,6 +220,76 @@ describe("CrowdTubeCampaigns", async function () {
     );
   });
 
+  it("withdraws the available balance from multiple campaigns in one transaction", async function () {
+    const { contract, creator, donor } =
+      await networkHelpers.loadFixture(deployCampaignsFixture);
+
+    await createCampaign(contract, creator);
+    await createCampaign(contract, creator, SECOND_METADATA_ID);
+    await contract.write.donate([1n], {
+      account: donor.account,
+      value: DONATION,
+    });
+    await contract.write.donate([2n], {
+      account: donor.account,
+      value: DONATION,
+    });
+
+    await viem.assertions.emitWithArgs(
+      contract.write.withdrawFromCampaigns([[1n, 2n]], {
+        account: creator.account,
+      }),
+      contract,
+      "GeneralWithdrawal",
+      [creator.account.address, DONATION * 2n],
+    );
+
+    assert.equal(await contract.read.getAvailableBalance([1n]), 0n);
+    assert.equal(await contract.read.getAvailableBalance([2n]), 0n);
+    assert.equal((await contract.read.getCampaign([1n])).totalWithdrawn, DONATION);
+    assert.equal((await contract.read.getCampaign([2n])).totalWithdrawn, DONATION);
+  });
+
+  it("rejects a general withdrawal containing another creator's campaign", async function () {
+    const { contract, creator, secondCreator, donor } =
+      await networkHelpers.loadFixture(deployCampaignsFixture);
+
+    await createCampaign(contract, creator);
+    await createCampaign(contract, secondCreator, SECOND_METADATA_ID);
+    await contract.write.donate([1n], {
+      account: donor.account,
+      value: DONATION,
+    });
+    await contract.write.donate([2n], {
+      account: donor.account,
+      value: DONATION,
+    });
+
+    await viem.assertions.revertWith(
+      contract.write.withdrawFromCampaigns([[1n, 2n]], {
+        account: creator.account,
+      }),
+      "Only campaign creator can perform this action",
+    );
+
+    assert.equal(await contract.read.getAvailableBalance([1n]), DONATION);
+    assert.equal(await contract.read.getAvailableBalance([2n]), DONATION);
+  });
+
+  it("rejects a general withdrawal when no selected campaign has funds", async function () {
+    const { contract, creator } =
+      await networkHelpers.loadFixture(deployCampaignsFixture);
+
+    await createCampaign(contract, creator);
+
+    await viem.assertions.revertWith(
+      contract.write.withdrawFromCampaigns([[1n]], {
+        account: creator.account,
+      }),
+      "No funds available to withdraw",
+    );
+  });
+
   it("prevents donations to an inactive campaign", async function () {
     const { contract, creator, donor } =
       await networkHelpers.loadFixture(deployCampaignsFixture);
