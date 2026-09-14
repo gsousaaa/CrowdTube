@@ -1,0 +1,227 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { prepareContractCall, readContract, waitForReceipt } from "thirdweb";
+import {
+  useActiveAccount,
+  useActiveWalletChain,
+  useSendTransaction,
+  useSwitchActiveWalletChain,
+} from "thirdweb/react";
+
+import { useMockCampaigns } from "@/hooks/use-mock-campaigns";
+import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
+import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
+import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
+
+type CreatorCampaignBalance = {
+  campaignId: string;
+  title: string;
+  availableBalance: bigint;
+};
+
+type WithdrawalStatus =
+  | "idle"
+  | "switching-chain"
+  | "awaiting-signature"
+  | "sent"
+  | "confirmed"
+  | "error";
+
+function formatEther(value: bigint) {
+  const formatted = value.toString().padStart(19, "0");
+  const wholePart = formatted.slice(0, -18);
+  const decimalPart = formatted.slice(-18).replace(/0+$/, "").slice(0, 6);
+
+  return decimalPart ? `${wholePart}.${decimalPart}` : wholePart;
+}
+
+export function CreatorBalancePanel() {
+  const { campaigns, isLoaded } = useMockCampaigns();
+  const [creatorCampaigns, setCreatorCampaigns] =
+    useState<CreatorCampaignBalance[]>([]);
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const [status, setStatus] = useState<WithdrawalStatus>("idle");
+  const [error, setError] = useState<string>();
+  const account = useActiveAccount();
+  const activeChain = useActiveWalletChain();
+  const switchChain = useSwitchActiveWalletChain();
+  const sendTransaction = useSendTransaction({ payModal: false });
+
+  const loadCreatorBalances = useCallback(async () => {
+    if (!account || !isLoaded) {
+      setCreatorCampaigns([]);
+      return;
+    }
+
+    setIsLoadingBalances(true);
+
+    const results = await Promise.allSettled(
+      campaigns
+        .filter((campaign) => campaign.hasLocalContract)
+        .map(async (campaign) => {
+          const campaignId = BigInt(campaign.id);
+          const onchainCampaign = await readContract({
+            contract: crowdTubeCampaignsContract,
+            method: "getCampaign",
+            params: [campaignId],
+          });
+
+          if (
+            onchainCampaign.creator.toLowerCase() !==
+            account.address.toLowerCase()
+          ) {
+            return undefined;
+          }
+
+          const availableBalance = await readContract({
+            contract: crowdTubeCampaignsContract,
+            method: "getAvailableBalance",
+            params: [campaignId],
+          });
+
+          return {
+            campaignId: campaign.id,
+            title: campaign.title,
+            availableBalance,
+          };
+        }),
+    );
+
+    setCreatorCampaigns(
+      results.flatMap((result) =>
+        result.status === "fulfilled" && result.value ? [result.value] : [],
+      ),
+    );
+    setIsLoadingBalances(false);
+  }, [account, campaigns, isLoaded]);
+
+  useEffect(() => {
+    const refreshTimeout = window.setTimeout(() => {
+      void loadCreatorBalances();
+    }, 0);
+
+    return () => window.clearTimeout(refreshTimeout);
+  }, [loadCreatorBalances]);
+
+  const totalAvailable = creatorCampaigns.reduce(
+    (total, campaign) => total + campaign.availableBalance,
+    0n,
+  );
+  const campaignsWithBalance = creatorCampaigns.filter(
+    (campaign) => campaign.availableBalance > 0n,
+  );
+  const isProcessing =
+    status === "switching-chain" ||
+    status === "awaiting-signature" ||
+    status === "sent";
+
+  async function withdrawAllAvailable() {
+    setError(undefined);
+
+    try {
+      if (!account) throw new Error("Conecte sua carteira para realizar o saque.");
+      if (campaignsWithBalance.length === 0) {
+        throw new Error("Não há saldo disponível para sacar.");
+      }
+
+      if (activeChain?.id !== hardhatLocalChain.id) {
+        setStatus("switching-chain");
+        await switchChain(hardhatLocalChain);
+      }
+
+      const transaction = prepareContractCall({
+        contract: crowdTubeCampaignsContract,
+        method: "withdrawFromCampaigns",
+        params: [
+          campaignsWithBalance.map((campaign) => BigInt(campaign.campaignId)),
+        ],
+      });
+
+      setStatus("awaiting-signature");
+      const sentTransaction = await sendTransaction.mutateAsync(transaction);
+      setStatus("sent");
+      await waitForReceipt(sentTransaction);
+
+      setStatus("confirmed");
+      await loadCreatorBalances();
+      notifyContractDataUpdated();
+    } catch (withdrawalError) {
+      setStatus("error");
+      setError(
+        withdrawalError instanceof Error
+          ? withdrawalError.message
+          : "Não foi possível concluir o saque geral.",
+      );
+    }
+  }
+
+  return (
+    <section className="rounded-3xl border border-emerald-300/20 bg-emerald-300/[0.05] p-6 sm:p-8">
+      <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/70">
+        Saldo consolidado
+      </p>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <p className="text-sm text-zinc-400">Disponível em suas campanhas</p>
+          <p className="mt-1 text-4xl font-semibold text-emerald-300">
+            {isLoadingBalances ? "..." : `${formatEther(totalAvailable)} ETH`}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={withdrawAllAvailable}
+          disabled={!account || totalAvailable === 0n || isProcessing}
+          className="h-11 rounded-xl bg-emerald-300 px-5 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {status === "switching-chain" && "Trocando para Hardhat..."}
+          {status === "awaiting-signature" && "Confirme na carteira..."}
+          {status === "sent" && "Aguardando confirmação..."}
+          {(status === "idle" || status === "confirmed" || status === "error") &&
+            "Sacar saldo total"}
+        </button>
+      </div>
+
+      {!account ? (
+        <p className="mt-5 text-sm text-zinc-400">
+          Conecte a carteira para identificar suas campanhas.
+        </p>
+      ) : (
+        <div className="mt-7 space-y-3">
+          {creatorCampaigns.map((campaign) => (
+            <div
+              key={campaign.campaignId}
+              className="flex items-center justify-between gap-4 rounded-xl bg-black/25 px-4 py-3"
+            >
+              <div>
+                <p className="text-sm font-medium text-zinc-200">
+                  {campaign.title}
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Campanha #{campaign.campaignId}
+                </p>
+              </div>
+              <p className="text-sm text-emerald-200">
+                {formatEther(campaign.availableBalance)} ETH
+              </p>
+            </div>
+          ))}
+          {!isLoadingBalances && creatorCampaigns.length === 0 ? (
+            <p className="text-sm text-zinc-400">
+              Nenhuma campanha dessa carteira foi encontrada nos dados locais.
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      <div aria-live="polite" className="mt-4 min-h-6">
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {status === "confirmed" ? (
+          <p className="text-sm text-emerald-200">
+            Saque geral confirmado e saldos atualizados.
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
