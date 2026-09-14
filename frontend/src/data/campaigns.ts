@@ -35,7 +35,3 @@ export const campaigns: Campaign[] = [
     hasLocalContract: false,
   },
 ];
-
-export function findCampaignById(id: string) {
-  return campaigns.find((campaign) => campaign.id === id);
-}

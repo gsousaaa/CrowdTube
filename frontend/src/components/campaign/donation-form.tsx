@@ -10,7 +10,7 @@ import {
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
-import { donationVaultContract } from "@/lib/web3/donation-vault-contract";
+import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
 function parseEtherInput(input: string) {
@@ -31,6 +31,7 @@ function parseEtherInput(input: string) {
 }
 
 type DonationFormProps = {
+  campaignId: string;
   goal: string;
   remaining: string;
 };
@@ -73,7 +74,7 @@ function getTransactionErrorMessage(error: unknown) {
   return "Não foi possível concluir a doação. Verifique a rede e tente novamente.";
 }
 
-export function DonationForm({ goal, remaining }: DonationFormProps) {
+export function DonationForm({ campaignId, goal, remaining }: DonationFormProps) {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string>();
   const [transactionStatus, setTransactionStatus] =
@@ -102,8 +103,9 @@ export function DonationForm({ goal, remaining }: DonationFormProps) {
       }
 
       const transaction = prepareContractCall({
-        contract: donationVaultContract,
+        contract: crowdTubeCampaignsContract,
         method: "donate",
+        params: [BigInt(campaignId)],
         value: amountInWei,
       });
 

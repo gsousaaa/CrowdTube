@@ -1,14 +1,69 @@
 "use client";
 
 import { FormEvent, MouseEvent, useRef, useState } from "react";
+import {
+  parseEventLogs,
+  prepareContractCall,
+  prepareEvent,
+  waitForReceipt,
+} from "thirdweb";
+import {
+  useActiveAccount,
+  useActiveWalletChain,
+  useSendTransaction,
+  useSwitchActiveWalletChain,
+} from "thirdweb/react";
+import { toWei } from "thirdweb/utils";
+
+import { saveMockCampaignMetadata } from "@/lib/campaigns/mock-campaign-storage";
+import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
+import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
+
+const campaignCreatedEvent = prepareEvent({
+  signature:
+    "event CampaignCreated(uint256 indexed campaignId, address indexed creator, bytes32 indexed metadataId, uint256 goal, uint256 deadline)",
+});
+
+type CreationStatus =
+  | "idle"
+  | "switching-chain"
+  | "awaiting-signature"
+  | "sent"
+  | "confirmed"
+  | "error";
+
+function createMockMetadataId() {
+  const uuidAsHex = crypto.randomUUID().replaceAll("-", "");
+  return `0x${uuidAsHex.padEnd(64, "0")}` as `0x${string}`;
+}
+
+function parseDeadline(input: string) {
+  if (!input) return 0n;
+
+  const deadline = new Date(`${input}T23:59:59`);
+
+  if (Number.isNaN(deadline.getTime()) || deadline.getTime() <= Date.now()) {
+    throw new Error("A data de encerramento deve estar no futuro.");
+  }
+
+  return BigInt(Math.floor(deadline.getTime() / 1_000));
+}
 
 export function CreateCampaignModal() {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [isValidated, setIsValidated] = useState(false);
   const [imageSource, setImageSource] = useState<"upload" | "url">("upload");
+  const [creationStatus, setCreationStatus] = useState<CreationStatus>("idle");
+  const [error, setError] = useState<string>();
+  const [createdCampaignId, setCreatedCampaignId] = useState<string>();
+  const account = useActiveAccount();
+  const activeChain = useActiveWalletChain();
+  const switchChain = useSwitchActiveWalletChain();
+  const sendTransaction = useSendTransaction({ payModal: false });
 
   function openModal() {
-    setIsValidated(false);
+    setCreationStatus("idle");
+    setError(undefined);
+    setCreatedCampaignId(undefined);
     dialogRef.current?.showModal();
   }
 
@@ -22,10 +77,92 @@ export function CreateCampaignModal() {
     }
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsValidated(true);
+    setError(undefined);
+    setCreatedCampaignId(undefined);
+
+    try {
+      if (!account) {
+        throw new Error("Conecte sua carteira antes de criar a campanha.");
+      }
+
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+      const goalEth = String(formData.get("goal") ?? "");
+      const deadlineInput = String(formData.get("deadline") ?? "");
+      const metadataId = createMockMetadataId();
+      const goal = toWei(goalEth);
+      const deadline = parseDeadline(deadlineInput);
+
+      if (goal <= 0n) {
+        throw new Error("A meta deve ser maior que zero.");
+      }
+
+      if (activeChain?.id !== hardhatLocalChain.id) {
+        setCreationStatus("switching-chain");
+        await switchChain(hardhatLocalChain);
+      }
+
+      const transaction = prepareContractCall({
+        contract: crowdTubeCampaignsContract,
+        method: "createCampaign",
+        params: [metadataId, goal, deadline],
+      });
+
+      setCreationStatus("awaiting-signature");
+      const sentTransaction = await sendTransaction.mutateAsync(transaction);
+      setCreationStatus("sent");
+
+      const receipt = await waitForReceipt(sentTransaction);
+      const [createdEvent] = parseEventLogs({
+        events: [campaignCreatedEvent],
+        logs: receipt.logs,
+      });
+
+      if (!createdEvent) {
+        throw new Error("A transação confirmou, mas o evento de criação não foi encontrado.");
+      }
+
+      const campaignId = createdEvent.args.campaignId.toString();
+      const coverImage = formData.get("coverImage");
+      const imageReference =
+        imageSource === "url"
+          ? String(formData.get("coverImageUrl") ?? "")
+          : coverImage instanceof File
+            ? coverImage.name
+            : "";
+
+      saveMockCampaignMetadata({
+        campaignId,
+        metadataId,
+        title: String(formData.get("title") ?? ""),
+        category: String(formData.get("category") ?? ""),
+        description: String(formData.get("description") ?? ""),
+        youtubeUrl: String(formData.get("youtubeUrl") ?? ""),
+        imageReference,
+        goalEth,
+        deadline: deadlineInput || null,
+        creationTransactionHash: sentTransaction.transactionHash,
+      });
+
+      setCreatedCampaignId(campaignId);
+      setCreationStatus("confirmed");
+      form.reset();
+    } catch (creationError) {
+      setCreationStatus("error");
+      setError(
+        creationError instanceof Error
+          ? creationError.message
+          : "Não foi possível criar a campanha.",
+      );
+    }
   }
+
+  const isProcessing =
+    creationStatus === "switching-chain" ||
+    creationStatus === "awaiting-signature" ||
+    creationStatus === "sent";
 
   return (
     <>
@@ -42,7 +179,7 @@ export function CreateCampaignModal() {
         aria-labelledby="create-campaign-title"
         aria-describedby="create-campaign-description"
         onClick={handleBackdropClick}
-        onClose={() => setIsValidated(false)}
+        onClose={() => setCreationStatus("idle")}
         className="m-auto max-h-[90vh] w-[min(720px,calc(100%-2rem))] overflow-y-auto rounded-3xl border border-white/15 bg-zinc-950 p-0 text-zinc-100 shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-sm"
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-5 border-b border-white/10 bg-zinc-950/95 px-6 py-5 backdrop-blur sm:px-8">
@@ -57,8 +194,8 @@ export function CreateCampaignModal() {
               id="create-campaign-description"
               className="mt-2 max-w-xl text-sm leading-6 text-zinc-400"
             >
-              Por enquanto, vamos validar somente os dados do formulário. A
-              publicação onchain será conectada ao contrato em uma próxima etapa.
+              Os dados financeiros serão registrados no contrato. Nesta etapa,
+              os dados de apresentação serão armazenados apenas neste navegador.
             </p>
           </div>
 
@@ -76,7 +213,10 @@ export function CreateCampaignModal() {
 
         <form
           onSubmit={handleSubmit}
-          onInput={() => setIsValidated(false)}
+          onInput={() => {
+            setError(undefined);
+            if (creationStatus === "error") setCreationStatus("idle");
+          }}
           className="space-y-8 px-6 py-6 sm:px-8"
         >
           <fieldset>
@@ -249,20 +389,31 @@ export function CreateCampaignModal() {
                 <input
                   name="deadline"
                   type="date"
-                  required
                   className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
                 />
+                <span className="block text-xs text-zinc-500">
+                  Opcional. Sem uma data, a campanha não expira automaticamente.
+                </span>
               </label>
             </div>
           </fieldset>
 
-          {isValidated && (
+          {creationStatus === "confirmed" && createdCampaignId && (
             <div
               role="status"
               className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-100"
             >
-              Os campos estão válidos. Nenhuma campanha foi salva ou enviada à
-              blockchain nesta etapa do protótipo.
+              Campanha #{createdCampaignId} criada na blockchain. Os dados de
+              apresentação foram salvos localmente como mock.
+            </div>
+          )}
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-red-300/25 bg-red-300/10 px-4 py-3 text-sm leading-6 text-red-100"
+            >
+              {error}
             </div>
           )}
 
@@ -276,9 +427,16 @@ export function CreateCampaignModal() {
             </button>
             <button
               type="submit"
+              disabled={isProcessing}
               className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             >
-              Validar dados
+              {creationStatus === "switching-chain" && "Trocando para Hardhat..."}
+              {creationStatus === "awaiting-signature" && "Confirme na carteira..."}
+              {creationStatus === "sent" && "Aguardando confirmação..."}
+              {(creationStatus === "idle" ||
+                creationStatus === "confirmed" ||
+                creationStatus === "error") &&
+                "Criar campanha"}
             </button>
           </div>
         </form>

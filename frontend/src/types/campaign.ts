@@ -8,4 +8,6 @@ export type Campaign = {
   remaining: string;
   wallet: string;
   hasLocalContract: boolean;
+  youtubeUrl?: string;
+  imageReference?: string;
 };
