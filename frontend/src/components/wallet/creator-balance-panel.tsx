@@ -4,15 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { prepareContractCall, readContract, waitForReceipt } from "thirdweb";
 import {
   useActiveAccount,
-  useActiveWalletChain,
   useSendTransaction,
-  useSwitchActiveWalletChain,
 } from "thirdweb/react";
 
 import { useMockCampaigns } from "@/hooks/use-mock-campaigns";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
-import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
 type CreatorCampaignBalance = {
   campaignId: string;
@@ -22,7 +19,6 @@ type CreatorCampaignBalance = {
 
 type WithdrawalStatus =
   | "idle"
-  | "switching-chain"
   | "awaiting-signature"
   | "sent"
   | "confirmed"
@@ -44,8 +40,6 @@ export function CreatorBalancePanel() {
   const [status, setStatus] = useState<WithdrawalStatus>("idle");
   const [error, setError] = useState<string>();
   const account = useActiveAccount();
-  const activeChain = useActiveWalletChain();
-  const switchChain = useSwitchActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
 
   const loadCreatorBalances = useCallback(async () => {
@@ -112,7 +106,6 @@ export function CreatorBalancePanel() {
     (campaign) => campaign.availableBalance > 0n,
   );
   const isProcessing =
-    status === "switching-chain" ||
     status === "awaiting-signature" ||
     status === "sent";
 
@@ -123,11 +116,6 @@ export function CreatorBalancePanel() {
       if (!account) throw new Error("Conecte sua carteira para realizar o saque.");
       if (campaignsWithBalance.length === 0) {
         throw new Error("Não há saldo disponível para sacar.");
-      }
-
-      if (activeChain?.id !== hardhatLocalChain.id) {
-        setStatus("switching-chain");
-        await switchChain(hardhatLocalChain);
       }
 
       const transaction = prepareContractCall({
@@ -174,7 +162,6 @@ export function CreatorBalancePanel() {
           disabled={!account || totalAvailable === 0n || isProcessing}
           className="h-11 rounded-xl bg-emerald-300 px-5 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {status === "switching-chain" && "Trocando para Hardhat..."}
           {status === "awaiting-signature" && "Confirme na carteira..."}
           {status === "sent" && "Aguardando confirmação..."}
           {(status === "idle" || status === "confirmed" || status === "error") &&

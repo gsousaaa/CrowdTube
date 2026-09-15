@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { sepolia } from "thirdweb/chains";
 import {
   useActiveAccount,
   useActiveWallet,
@@ -11,19 +10,13 @@ import {
 import { createWallet } from "thirdweb/wallets";
 
 import { thirdwebClient } from "@/lib/thirdweb/client";
-import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
-
-type ConnectWalletButtonProps = {
-  network?: "sepolia" | "hardhat";
-};
+import { crowdTubeChain, isHardhatNetwork } from "@/lib/web3/network";
 
 function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function ConnectWalletButton({
-  network = "sepolia",
-}: ConnectWalletButtonProps) {
+export function ConnectWalletButton() {
   const account = useActiveAccount();
   const activeWallet = useActiveWallet();
   const { connect, isConnecting } = useConnect();
@@ -31,8 +24,6 @@ export function ConnectWalletButton({
   const [connectionError, setConnectionError] = useState<string>();
   const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
   const menuRef = useRef<HTMLDetailsElement>(null);
-
-  const selectedChain = network === "hardhat" ? hardhatLocalChain : sepolia;
 
   async function connectWallet(walletType: "metamask" | "coinbase") {
     setConnectionError(undefined);
@@ -46,7 +37,7 @@ export function ConnectWalletButton({
       await connect(async () => {
         await selectedWallet.connect({
           client: thirdwebClient,
-          chain: selectedChain,
+          chain: crowdTubeChain,
         });
 
         return selectedWallet;
@@ -110,7 +101,7 @@ export function ConnectWalletButton({
             >
               MetaMask
             </button>
-            {network === "sepolia" ? (
+            {!isHardhatNetwork ? (
               <button
                 type="button"
                 onClick={() => void connectWallet("coinbase")}

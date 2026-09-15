@@ -4,15 +4,12 @@ import { useState } from "react";
 import { prepareContractCall, waitForReceipt } from "thirdweb";
 import {
   useActiveAccount,
-  useActiveWalletChain,
   useReadContract,
   useSendTransaction,
-  useSwitchActiveWalletChain,
 } from "thirdweb/react";
 
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
-import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
 type CampaignStatusControlProps = {
   campaignId: string;
@@ -20,7 +17,6 @@ type CampaignStatusControlProps = {
 
 type TransactionStatus =
   | "idle"
-  | "switching-chain"
   | "awaiting-signature"
   | "sent"
   | "confirmed"
@@ -34,8 +30,6 @@ export function CampaignStatusControl({
     useState<TransactionStatus>("idle");
   const [error, setError] = useState<string>();
   const account = useActiveAccount();
-  const activeChain = useActiveWalletChain();
-  const switchChain = useSwitchActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
   const campaign = useReadContract({
     contract: crowdTubeCampaignsContract,
@@ -48,7 +42,6 @@ export function CampaignStatusControl({
     campaign.data &&
     account.address.toLowerCase() === campaign.data.creator.toLowerCase();
   const isProcessing =
-    transactionStatus === "switching-chain" ||
     transactionStatus === "awaiting-signature" ||
     transactionStatus === "sent";
 
@@ -58,11 +51,6 @@ export function CampaignStatusControl({
     try {
       if (!account || !campaign.data || !isCreator) {
         throw new Error("Somente a carteira criadora pode alterar o status.");
-      }
-
-      if (activeChain?.id !== hardhatLocalChain.id) {
-        setTransactionStatus("switching-chain");
-        await switchChain(hardhatLocalChain);
       }
 
       const transaction = prepareContractCall({
@@ -125,7 +113,6 @@ export function CampaignStatusControl({
             disabled={isProcessing}
             className="h-11 rounded-xl border border-white/15 px-5 text-sm font-medium text-zinc-200 transition hover:border-emerald-300/50 hover:text-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {transactionStatus === "switching-chain" && "Trocando rede..."}
             {transactionStatus === "awaiting-signature" && "Confirme na carteira..."}
             {transactionStatus === "sent" && "Confirmando..."}
             {(transactionStatus === "idle" ||

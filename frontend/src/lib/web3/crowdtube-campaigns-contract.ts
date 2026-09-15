@@ -2,7 +2,7 @@ import { getContract } from "thirdweb";
 
 import { thirdwebClient } from "@/lib/thirdweb/client";
 import { crowdTubeCampaignsAbi } from "@/lib/web3/crowdtube-campaigns-abi";
-import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
+import { crowdTubeChain } from "@/lib/web3/network";
 
 const crowdTubeCampaignsAddress =
   process.env.NEXT_PUBLIC_CROWDTUBE_CAMPAIGNS_ADDRESS;
@@ -15,7 +15,7 @@ if (!crowdTubeCampaignsAddress?.match(/^0x[a-fA-F0-9]{40}$/)) {
 
 export const crowdTubeCampaignsContract = getContract({
   client: thirdwebClient,
-  chain: hardhatLocalChain,
+  chain: crowdTubeChain,
   address: crowdTubeCampaignsAddress,
   abi: crowdTubeCampaignsAbi,
 });

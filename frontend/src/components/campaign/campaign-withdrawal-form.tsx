@@ -4,20 +4,16 @@ import { FormEvent, useState } from "react";
 import { prepareContractCall, waitForReceipt } from "thirdweb";
 import {
   useActiveAccount,
-  useActiveWalletChain,
   useReadContract,
   useSendTransaction,
-  useSwitchActiveWalletChain,
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
-import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
 type WithdrawalStatus =
   | "idle"
-  | "switching-chain"
   | "awaiting-signature"
   | "sent"
   | "confirmed"
@@ -79,8 +75,6 @@ export function CampaignWithdrawalForm({
   const [status, setStatus] = useState<WithdrawalStatus>("idle");
   const [error, setError] = useState<string>();
   const account = useActiveAccount();
-  const activeChain = useActiveWalletChain();
-  const switchChain = useSwitchActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
   const campaign = useReadContract({
     contract: crowdTubeCampaignsContract,
@@ -98,7 +92,6 @@ export function CampaignWithdrawalForm({
     campaign.data &&
     account.address.toLowerCase() === campaign.data.creator.toLowerCase();
   const isProcessing =
-    status === "switching-chain" ||
     status === "awaiting-signature" ||
     status === "sent";
 
@@ -126,11 +119,6 @@ export function CampaignWithdrawalForm({
         amountInWei > availableBalance.data
       ) {
         throw new Error("O valor solicitado é maior que o saldo disponível da campanha.");
-      }
-
-      if (activeChain?.id !== hardhatLocalChain.id) {
-        setStatus("switching-chain");
-        await switchChain(hardhatLocalChain);
       }
 
       const transaction = prepareContractCall({
@@ -222,7 +210,6 @@ export function CampaignWithdrawalForm({
             disabled={isProcessing || availableBalance.data === 0n}
             className="mt-4 h-11 w-full rounded-xl bg-emerald-300 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {status === "switching-chain" && "Trocando para Hardhat..."}
             {status === "awaiting-signature" && "Confirme na carteira..."}
             {status === "sent" && "Aguardando confirmação..."}
             {(status === "idle" || status === "confirmed" || status === "error") &&
