@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CampaignCardProgress } from "@/components/campaign/campaign-card-progress";
 import type { Campaign } from "@/types/campaign";
 
 type CampaignCardProps = {
@@ -30,27 +31,26 @@ export function CampaignCard({ campaign }: CampaignCardProps) {
             </p>
           </div>
 
-          <div className="flex items-end justify-between gap-4">
+          {campaign.hasLocalContract ? (
+            <CampaignCardProgress campaignId={campaign.id} />
+          ) : (
             <div>
-              <p className="text-xs uppercase tracking-wider text-zinc-500">
-                Arrecadado
-              </p>
-              <p className="mt-1 text-lg font-semibold text-emerald-300">
-                {campaign.raised}
-                <span className="text-sm font-normal text-zinc-500">
-                  {" "}
-                  / {campaign.goal}
-                </span>
-              </p>
+              <div className="flex items-end justify-between gap-4">
+                <p className="text-lg font-semibold text-emerald-300">
+                  {campaign.raised}
+                  <span className="text-sm font-normal text-zinc-500">
+                    {" "}/ {campaign.goal}
+                  </span>
+                </p>
+                <p className="text-right text-sm text-zinc-300">
+                  {campaign.remaining}
+                </p>
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full w-1/2 rounded-full bg-emerald-300" />
+              </div>
             </div>
-            <p className="text-right text-sm text-zinc-300">
-              {campaign.remaining}
-            </p>
-          </div>
-
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full w-1/2 rounded-full bg-emerald-300" />
-          </div>
+          )}
 
           <p
             className="truncate font-mono text-xs text-zinc-500"

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 
 import { CampaignPublicLink } from "@/components/campaign/campaign-public-link";
+import { CampaignFinancialSummary } from "@/components/campaign/campaign-financial-summary";
+import { CampaignStatusControl } from "@/components/campaign/campaign-status-control";
 import { CampaignWithdrawalForm } from "@/components/campaign/campaign-withdrawal-form";
-import { CampaignContractStatus } from "@/components/contract/campaign-contract-status";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { useMockCampaigns } from "@/hooks/use-mock-campaigns";
@@ -29,17 +30,17 @@ export default function AdminCampaignDetailsPage() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_bottom_left,_rgba(6,78,59,0.5),_transparent_38%),#020403] text-zinc-100">
       <div className="grid min-h-screen w-full overflow-hidden bg-black/65 backdrop-blur lg:grid-cols-[76px_1fr]">
         <AppSidebar />
-        <main className="min-w-0 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+        <main className="min-w-0 px-4 py-6 sm:px-8 lg:px-10 lg:py-8">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-7">
             <Link href="/admin" className="text-sm text-zinc-400 transition hover:text-emerald-300">← Voltar para campanhas</Link>
             <ConnectWalletButton />
           </header>
-          <article className="py-8">
-            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-              <div>
+          <article className="py-7 sm:py-8">
+            <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+              <div className="min-w-0">
                 <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs text-emerald-200">{campaign.category}</span>
-                <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">{campaign.title}</h1>
-                <p className="mt-4 max-w-3xl leading-7 text-zinc-400">{campaign.description} Nesta fase, esse conteúdo ainda é demonstrativo e será fornecido pelo backend futuramente.</p>
+                <h1 className="mt-5 break-words text-2xl font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-4xl">{campaign.title}</h1>
+                <p className="mt-4 max-w-3xl break-words leading-7 text-zinc-400 [overflow-wrap:anywhere]">{campaign.description}</p>
                 {campaign.youtubeUrl ? (
                   <a
                     href={campaign.youtubeUrl}
@@ -50,11 +51,14 @@ export default function AdminCampaignDetailsPage() {
                     Abrir conteúdo no YouTube ↗
                   </a>
                 ) : null}
+                {campaign.hasLocalContract ? (
+                  <CampaignFinancialSummary campaignId={campaign.id} />
+                ) : null}
               </div>
 
-              <aside aria-label="Imagem da campanha">
-                <div className="flex h-40 items-end rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(52,211,153,0.3),_transparent_42%),linear-gradient(145deg,_#27272a,_#111827)] p-4">
-                  <p className="text-xs leading-5 text-zinc-300">
+              <aside aria-label="Imagem da campanha" className="min-w-0 w-full">
+                <div className="flex aspect-video w-full items-end rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(52,211,153,0.3),_transparent_42%),linear-gradient(145deg,_#27272a,_#111827)] p-4 lg:aspect-auto lg:h-40">
+                  <p className="min-w-0 break-all text-xs leading-5 text-zinc-300">
                     {campaign.imageReference
                       ? `Imagem: ${campaign.imageReference}`
                       : "Imagem da campanha será carregada pelo backend/S3"}
@@ -64,14 +68,10 @@ export default function AdminCampaignDetailsPage() {
             </div>
 
             <div className="mt-8 space-y-5">
-              <CampaignPublicLink
-                campaignId={campaign.id}
-                goal={campaign.goal}
-                remaining={campaign.remaining}
-              />
+              <CampaignPublicLink campaignId={campaign.id} />
               {campaign.hasLocalContract ? (
                 <>
-                  <CampaignContractStatus campaignId={campaign.id} />
+                  <CampaignStatusControl campaignId={campaign.id} />
                   <CampaignWithdrawalForm campaignId={campaign.id} />
                 </>
               ) : (
