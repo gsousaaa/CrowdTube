@@ -4,10 +4,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { prepareContractCall, waitForReceipt } from "thirdweb";
 import {
   useActiveAccount,
-  useActiveWalletChain,
   useReadContract,
   useSendTransaction,
-  useSwitchActiveWalletChain,
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
@@ -21,7 +19,6 @@ import {
   CONTRACT_DATA_UPDATED_EVENT,
   notifyContractDataUpdated,
 } from "@/lib/web3/contract-events";
-import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
 function parseEtherInput(input: string) {
   const normalizedInput = input.trim().replace(",", ".");
@@ -48,7 +45,6 @@ type DonationFormProps = {
 
 type TransactionStatus =
   | "idle"
-  | "switching-chain"
   | "awaiting-signature"
   | "sent"
   | "confirmed"
@@ -73,14 +69,6 @@ function getTransactionErrorMessage(error: unknown) {
     return "A carteira não possui ETH suficiente para a doação e o gas.";
   }
 
-  if (
-    message.includes("wallet_switchethereumchain") ||
-    message.includes("method is not supported") ||
-    message.includes("método não é aceito")
-  ) {
-    return "A Coinbase Wallet não aceita a rede Hardhat local. Desconecte-a e use a MetaMask para este teste.";
-  }
-
   return "Não foi possível concluir a doação. Verifique a rede e tente novamente.";
 }
 
@@ -91,8 +79,6 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
     useState<TransactionStatus>("idle");
   const [transactionHash, setTransactionHash] = useState<string>();
   const account = useActiveAccount();
-  const activeChain = useActiveWalletChain();
-  const switchChain = useSwitchActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
   const campaign = useReadContract({
     contract: crowdTubeCampaignsContract,
@@ -139,11 +125,6 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
         throw new Error("Esta campanha está inativa e não recebe doações.");
       }
 
-      if (activeChain?.id !== hardhatLocalChain.id) {
-        setTransactionStatus("switching-chain");
-        await switchChain(hardhatLocalChain);
-      }
-
       const transaction = prepareContractCall({
         contract: crowdTubeCampaignsContract,
         method: "donate",
@@ -168,7 +149,6 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
   }
 
   const isProcessing =
-    transactionStatus === "switching-chain" ||
     transactionStatus === "awaiting-signature" ||
     transactionStatus === "sent";
 
@@ -264,7 +244,6 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
         disabled={isProcessing || isCampaignInactive}
         className="mt-5 h-11 w-full rounded-xl bg-emerald-300 font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {transactionStatus === "switching-chain" && "Trocando para Hardhat..."}
         {transactionStatus === "awaiting-signature" && "Confirme na carteira..."}
         {transactionStatus === "sent" && "Aguardando confirmação..."}
         {(transactionStatus === "idle" ||

@@ -9,15 +9,12 @@ import {
 } from "thirdweb";
 import {
   useActiveAccount,
-  useActiveWalletChain,
   useSendTransaction,
-  useSwitchActiveWalletChain,
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
 import { saveMockCampaignMetadata } from "@/lib/campaigns/mock-campaign-storage";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
-import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
 const campaignCreatedEvent = prepareEvent({
   signature:
@@ -26,7 +23,6 @@ const campaignCreatedEvent = prepareEvent({
 
 type CreationStatus =
   | "idle"
-  | "switching-chain"
   | "awaiting-signature"
   | "sent"
   | "confirmed"
@@ -56,8 +52,6 @@ export function CreateCampaignModal() {
   const [error, setError] = useState<string>();
   const [createdCampaignId, setCreatedCampaignId] = useState<string>();
   const account = useActiveAccount();
-  const activeChain = useActiveWalletChain();
-  const switchChain = useSwitchActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
 
   function openModal() {
@@ -97,11 +91,6 @@ export function CreateCampaignModal() {
 
       if (goal <= 0n) {
         throw new Error("A meta deve ser maior que zero.");
-      }
-
-      if (activeChain?.id !== hardhatLocalChain.id) {
-        setCreationStatus("switching-chain");
-        await switchChain(hardhatLocalChain);
       }
 
       const transaction = prepareContractCall({
@@ -160,7 +149,6 @@ export function CreateCampaignModal() {
   }
 
   const isProcessing =
-    creationStatus === "switching-chain" ||
     creationStatus === "awaiting-signature" ||
     creationStatus === "sent";
 
@@ -430,7 +418,6 @@ export function CreateCampaignModal() {
               disabled={isProcessing}
               className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             >
-              {creationStatus === "switching-chain" && "Trocando para Hardhat..."}
               {creationStatus === "awaiting-signature" && "Confirme na carteira..."}
               {creationStatus === "sent" && "Aguardando confirmação..."}
               {(creationStatus === "idle" ||
