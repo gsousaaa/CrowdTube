@@ -27,7 +27,7 @@ export default function PublicCampaignPage() {
       <div className="mx-auto min-w-0 max-w-6xl">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
           <Link href={`/campaigns/${campaign.id}`} className="text-xl font-bold text-emerald-300">CrowdTube</Link>
-          <ConnectWalletButton network="hardhat" />
+          <ConnectWalletButton />
         </header>
         <article className="py-7 sm:py-10">
           <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
