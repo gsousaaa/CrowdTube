@@ -1,16 +1,26 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { prepareContractCall, waitForReceipt } from "thirdweb";
 import {
   useActiveAccount,
   useActiveWalletChain,
+  useReadContract,
   useSendTransaction,
   useSwitchActiveWalletChain,
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
+import {
+  formatEther,
+  getProgressBarWidth,
+  getProgressPercentage,
+} from "@/lib/web3/campaign-values";
+import {
+  CONTRACT_DATA_UPDATED_EVENT,
+  notifyContractDataUpdated,
+} from "@/lib/web3/contract-events";
 import { hardhatLocalChain } from "@/lib/web3/hardhat-chain";
 
 function parseEtherInput(input: string) {
@@ -84,6 +94,34 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
   const activeChain = useActiveWalletChain();
   const switchChain = useSwitchActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
+  const campaign = useReadContract({
+    contract: crowdTubeCampaignsContract,
+    method: "getCampaign",
+    params: [BigInt(campaignId)],
+  });
+  const { refetch: refetchCampaign } = campaign;
+  const isCampaignInactive = campaign.data?.active === false;
+  const goalReached = campaign.data
+    ? campaign.data.totalRaised >= campaign.data.goal
+    : false;
+  const progressPercentage = campaign.data
+    ? getProgressPercentage(campaign.data.totalRaised, campaign.data.goal)
+    : 0;
+  const progressWidth = campaign.data
+    ? getProgressBarWidth(campaign.data.totalRaised, campaign.data.goal)
+    : 0;
+
+  useEffect(() => {
+    function refreshCampaign() {
+      void refetchCampaign();
+    }
+
+    window.addEventListener(CONTRACT_DATA_UPDATED_EVENT, refreshCampaign);
+
+    return () => {
+      window.removeEventListener(CONTRACT_DATA_UPDATED_EVENT, refreshCampaign);
+    };
+  }, [refetchCampaign]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,6 +133,10 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
 
       if (!account) {
         throw new Error("Conecte sua carteira antes de realizar a doação.");
+      }
+
+      if (isCampaignInactive) {
+        throw new Error("Esta campanha está inativa e não recebe doações.");
       }
 
       if (activeChain?.id !== hardhatLocalChain.id) {
@@ -117,6 +159,8 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
       await waitForReceipt(sentTransaction);
       setTransactionStatus("confirmed");
       setAmount("");
+      await campaign.refetch();
+      notifyContractDataUpdated();
     } catch (transactionError) {
       setTransactionStatus("error");
       setError(getTransactionErrorMessage(transactionError));
@@ -131,29 +175,62 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-3xl border border-emerald-300/25 bg-emerald-300/[0.06] p-6 sm:p-8"
+      className="min-w-0 rounded-3xl border border-emerald-300/25 bg-emerald-300/[0.06] p-4 sm:p-8"
     >
-      <div className="flex flex-wrap items-start justify-between gap-5">
-        <div>
+      <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/70">
             Apoie esta campanha
           </p>
-          <label
-            htmlFor="donation-amount"
-            className="mt-1 block text-xl font-semibold"
-          >
-            Valor da doação
-          </label>
+          {isCampaignInactive ? (
+            <span className="mt-2 inline-flex rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-200">
+              Campanha está inativa
+            </span>
+          ) : null}
         </div>
 
-        <div className="min-w-36 sm:text-right">
+        <div className="min-w-0 sm:min-w-36 sm:text-right">
           <p className="text-xs uppercase tracking-wider text-zinc-500">
             Meta da campanha
           </p>
-          <p className="mt-1 text-2xl font-semibold text-emerald-300">{goal}</p>
-          <p className="mt-1 text-sm text-zinc-400">Restam {remaining}</p>
+          <p className="mt-1 text-2xl font-semibold text-emerald-300">
+            {campaign.data ? `${formatEther(campaign.data.goal)} ETH` : goal}
+          </p>
+          {campaign.data ? (
+            <p className="mt-1 text-xs text-zinc-500">
+              {formatEther(campaign.data.totalRaised)} ETH arrecadados
+            </p>
+          ) : null}
+          <p className="mt-1 text-sm text-zinc-400">
+            {remaining === "Sem prazo" ? remaining : `Restam ${remaining}`}
+          </p>
         </div>
       </div>
+
+      {campaign.data ? (
+        <div className="mt-5">
+          <div className="mb-2 flex justify-end">
+            <span className="text-sm font-medium text-emerald-200">
+              {goalReached
+                ? "Meta atingida"
+                : `${progressPercentage.toLocaleString("pt-BR")}%`}
+            </span>
+          </div>
+          <div
+            role="progressbar"
+            aria-label="Progresso da meta da campanha"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progressWidth}
+            className="h-2 w-full max-w-full overflow-hidden rounded-full bg-white/10"
+          >
+            <div
+              className="h-full rounded-full bg-emerald-300 transition-[width]"
+              style={{ width: `${progressWidth}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <div className="relative mt-2">
         <input
@@ -184,7 +261,7 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
 
       <button
         type="submit"
-        disabled={isProcessing}
+        disabled={isProcessing || isCampaignInactive}
         className="mt-5 h-11 w-full rounded-xl bg-emerald-300 font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {transactionStatus === "switching-chain" && "Trocando para Hardhat..."}

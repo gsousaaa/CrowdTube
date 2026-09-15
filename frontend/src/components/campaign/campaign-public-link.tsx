@@ -5,15 +5,9 @@ import { useState } from "react";
 
 type CampaignPublicLinkProps = {
   campaignId: string;
-  goal: string;
-  remaining: string;
 };
 
-export function CampaignPublicLink({
-  campaignId,
-  goal,
-  remaining,
-}: CampaignPublicLinkProps) {
+export function CampaignPublicLink({ campaignId }: CampaignPublicLinkProps) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle",
   );
@@ -34,7 +28,7 @@ export function CampaignPublicLink({
       aria-labelledby="public-link-heading"
       className="rounded-3xl border border-emerald-300/25 bg-emerald-300/[0.06] p-6 sm:p-8"
     >
-      <div className="flex flex-wrap items-start justify-between gap-5">
+      <div>
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/70">
             Página pública
@@ -47,13 +41,6 @@ export function CampaignPublicLink({
           </p>
         </div>
 
-        <div className="min-w-36 sm:text-right">
-          <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Meta da campanha
-          </p>
-          <p className="mt-1 text-2xl font-semibold text-emerald-300">{goal}</p>
-          <p className="mt-1 text-sm text-zinc-400">Restam {remaining}</p>
-        </div>
       </div>
 
       <div className="mt-4 flex items-center gap-2">
