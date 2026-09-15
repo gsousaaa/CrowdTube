@@ -4,7 +4,6 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 
 import { DonationForm } from "@/components/campaign/donation-form";
-import { CampaignContractStatus } from "@/components/contract/campaign-contract-status";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { useMockCampaigns } from "@/hooks/use-mock-campaigns";
 
@@ -25,17 +24,17 @@ export default function PublicCampaignPage() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(6,78,59,0.45),_transparent_35%),#020403] px-4 py-8 text-zinc-100 sm:px-8 lg:py-12">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto min-w-0 max-w-6xl">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
           <Link href={`/campaigns/${campaign.id}`} className="text-xl font-bold text-emerald-300">CrowdTube</Link>
-          <ConnectWalletButton network="hardhat" />
+          <ConnectWalletButton />
         </header>
-        <article className="py-10">
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div>
+        <article className="py-7 sm:py-10">
+          <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="min-w-0">
               <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs text-emerald-200">{campaign.category}</span>
-              <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-5xl">{campaign.title}</h1>
-              <p className="mt-5 max-w-3xl text-lg leading-8 text-zinc-400">{campaign.description}</p>
+              <h1 className="mt-5 break-words text-2xl font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-4xl lg:text-5xl">{campaign.title}</h1>
+              <p className="mt-4 max-w-3xl break-words text-base leading-7 text-zinc-400 [overflow-wrap:anywhere] sm:mt-5 sm:text-lg sm:leading-8">{campaign.description}</p>
               {campaign.youtubeUrl ? (
                 <a
                   href={campaign.youtubeUrl}
@@ -47,9 +46,9 @@ export default function PublicCampaignPage() {
                 </a>
               ) : null}
             </div>
-            <aside aria-label="Imagem da campanha">
-              <div className="flex h-40 items-end rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(52,211,153,0.3),_transparent_42%),linear-gradient(145deg,_#27272a,_#111827)] p-4">
-                <p className="text-xs leading-5 text-zinc-300">
+            <aside aria-label="Imagem da campanha" className="min-w-0 w-full">
+              <div className="flex aspect-video w-full items-end rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(52,211,153,0.3),_transparent_42%),linear-gradient(145deg,_#27272a,_#111827)] p-4 lg:aspect-auto lg:h-40">
+                <p className="min-w-0 break-all text-xs leading-5 text-zinc-300">
                   {campaign.imageReference
                     ? `Imagem: ${campaign.imageReference}`
                     : "Imagem da campanha será carregada pelo backend/S3"}
@@ -66,7 +65,6 @@ export default function PublicCampaignPage() {
                   goal={campaign.goal}
                   remaining={campaign.remaining}
                 />
-                <CampaignContractStatus campaignId={campaign.id} />
               </>
             ) : (
               <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

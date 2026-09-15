@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { sepolia } from "thirdweb/chains";
 import {
   useActiveAccount,
   useActiveWalletChain,
   useActiveWalletConnectionStatus,
-  useSwitchActiveWalletChain,
   useWalletBalance,
 } from "thirdweb/react";
 
 import { thirdwebClient } from "@/lib/thirdweb/client";
+import { crowdTubeChain, crowdTubeNetworkName } from "@/lib/web3/network";
 
 function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -20,33 +18,17 @@ export function WalletStatus() {
   const account = useActiveAccount();
   const activeChain = useActiveWalletChain();
   const connectionStatus = useActiveWalletConnectionStatus();
-  const switchChain = useSwitchActiveWalletChain();
-  const [switchError, setSwitchError] = useState<string>();
-  const [isSwitching, setIsSwitching] = useState(false);
 
-  const isSepolia = activeChain?.id === sepolia.id;
+  const isTargetNetwork = activeChain?.id === crowdTubeChain.id;
   const {
     data: balance,
     isLoading: isBalanceLoading,
     error: balanceError,
   } = useWalletBalance({
     client: thirdwebClient,
-    chain: sepolia,
+    chain: crowdTubeChain,
     address: account?.address,
   });
-
-  async function handleSwitchChain() {
-    setSwitchError(undefined);
-    setIsSwitching(true);
-
-    try {
-      await switchChain(sepolia);
-    } catch {
-      setSwitchError("A troca de rede foi cancelada ou não pôde ser concluída.");
-    } finally {
-      setIsSwitching(false);
-    }
-  }
 
   if (!account) {
     return (
@@ -80,7 +62,7 @@ export function WalletStatus() {
 
         <div>
           <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Saldo na Sepolia
+            Saldo em {crowdTubeNetworkName}
           </p>
           <p className="mt-1 text-sm">
             {isBalanceLoading && "Consultando..."}
@@ -97,27 +79,18 @@ export function WalletStatus() {
           Estado da conexão: {connectionStatus}
         </p>
 
-        {!isSepolia ? (
-          <button
-            type="button"
-            onClick={handleSwitchChain}
-            disabled={isSwitching}
-            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
-          >
-            {isSwitching ? "Trocando rede..." : "Usar Sepolia"}
-          </button>
-        ) : (
-          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-            Pronto para usar a Sepolia
-          </p>
-        )}
-      </div>
-
-      {switchError ? (
-        <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
-          {switchError}
+        <p
+          className={`text-sm font-medium ${
+            isTargetNetwork
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400"
+          }`}
+        >
+          {isTargetNetwork
+            ? `Pronto para usar ${crowdTubeNetworkName}`
+            : `Carteira conectada em outra rede`}
         </p>
-      ) : null}
+      </div>
     </section>
   );
 }
