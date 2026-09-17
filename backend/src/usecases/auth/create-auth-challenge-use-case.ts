@@ -1,6 +1,6 @@
-import type { AppConfig } from "../../config/env";
-import { AuthNonce } from "../entities/auth-nonce";
-import type { AuthNonceRepository } from "../repository/auth-nonce-repository";
+import type { AppConfig } from "../../../config/env";
+import { AuthNonce } from "../../entities/auth-nonce";
+import type { AuthNonceRepository } from "../../repository/auth-nonce-repository";
 
 export type CreateAuthChallengeInput = {
   walletAddress: string;

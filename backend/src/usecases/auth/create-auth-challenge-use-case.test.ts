@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { AuthNonce } from "../entities/auth-nonce";
-import type { AuthNonceRepository } from "../repository/auth-nonce-repository";
-import { CreateAuthChallengeUseCase } from "./create-auth-challenge-use-case";
+import type { AuthNonce } from "../../entities/auth-nonce";
+import type { AuthNonceRepository } from "../../repository/auth-nonce-repository";
+import { CreateAuthChallengeUseCase } from ".././auth/create-auth-challenge-use-case";
 
 class AuthNonceRepositoryStub implements AuthNonceRepository {
   saved?: AuthNonce;

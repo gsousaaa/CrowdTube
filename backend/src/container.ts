@@ -1,6 +1,6 @@
 import type { AppConfig } from "../config/env";
 import { makeCheckHealthAdapter } from "./adapters/check-health-adapter";
-import { makeCreateAuthChallengeAdapter } from "./adapters/create-auth-challenge-adapter";
+import { makeCreateAuthChallengeAdapter } from "./adapters/auth/create-auth-challenge-adapter";
 import { makeControllers } from "./controllers/controller-factory";
 import { TypeOrmDatabaseHealthGateway } from "./database/typeorm-database-health-gateway";
 import { makeTypeOrmDataSource } from "./database/typeorm-data-source";
@@ -11,7 +11,7 @@ import { TypeOrmUserRepository } from "./repository/typeorm/typeorm-user-reposit
 import { TypeOrmUserWalletRepository } from "./repository/typeorm/typeorm-user-wallet-repository";
 import { TypeOrmAuthNonceRepository } from "./repository/typeorm/typeorm-auth-nonce-repository";
 import { CheckHealthUseCase } from "./usecases/check-health-use-case";
-import { CreateAuthChallengeUseCase } from "./usecases/create-auth-challenge-use-case";
+import { CreateAuthChallengeUseCase } from "./usecases/auth/create-auth-challenge-use-case";
 
 export function makeContainer(config: AppConfig) {
   const dataSource = makeTypeOrmDataSource(config);

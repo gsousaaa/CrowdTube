@@ -3,12 +3,12 @@ import { z } from "zod";
 import type {
   ControllerAdapter,
   ControllerResponse,
-} from "../controllers/controller-types";
-import { AppError } from "../errors/app-error";
+} from "../../controllers/controller-types";
+import { AppError } from "../../errors/app-error";
 import type {
   AuthChallenge,
   CreateAuthChallengeUseCase,
-} from "../usecases/create-auth-challenge-use-case";
+} from "../../usecases/auth/create-auth-challenge-use-case";
 
 const requestBodySchema = z.object({
   walletAddress: z.string(),
