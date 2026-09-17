@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/src/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:up": "docker compose up -d postgres",
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "lint": "eslint .",
+    "migration:revert": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:revert -d dist/src/database/cli-data-source.js",
+    "migration:run": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:run -d dist/src/database/cli-data-source.js",
+    "start": "node --env-file=.env dist/src/server.js",
+    "test": "tsc -p tsconfig.test.json && node --test dist/test/adapters/auth/viem-wallet-signature-verifier.test.js dist/test/entities/auth-nonce.test.js dist/test/entities/user.test.js dist/test/entities/user-wallet.test.js dist/test/usecases/check-health-use-case.test.js dist/test/usecases/auth/create-auth-challenge-use-case.test.js dist/test/usecases/auth/verify-auth-challenge-use-case.test.js"
+  },
+  "keywords": [],
+  "author": "gsousaaa",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/sensible": "^6.0.5",
+    "@fastify/swagger": "^9.8.1",
+    "@fastify/swagger-ui": "^6.1.1",
+    "fastify": "^5.12.5",
+    "pg": "^8.23.0",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^1.1.1",
+    "viem": "^2.56.7",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.3",
+    "eslint": "^10.10.0",
+    "tsx": "^4.23.13",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0"
+  }
+}
