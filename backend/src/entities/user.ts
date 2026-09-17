@@ -13,11 +13,11 @@ export class User {
   bio!: string | null;
   youtubeChannelUrl!: string | null;
   avatarUrl!: string | null;
-  createdAt!: number;
-  updatedAt!: number;
+  createdAt!: Date;
+  updatedAt!: Date;
 
   static create(input: CreateUserInput = {}): User {
-    const now = Date.now();
+    const now = new Date();
     const user = new User();
 
     user.id = randomUUID();

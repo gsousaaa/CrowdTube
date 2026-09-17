@@ -19,4 +19,12 @@ export class TypeOrmAuthNonceRepository
   findByNonce(nonce: string): Promise<AuthNonce | null> {
     return this.repository.findOneBy({ nonce });
   }
+
+  findByIdForUpdate(id: string): Promise<AuthNonce | null> {
+    return this.repository
+      .createQueryBuilder("authNonce")
+      .setLock("pessimistic_write")
+      .where("authNonce.id = :id", { id })
+      .getOne();
+  }
 }

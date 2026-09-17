@@ -51,4 +51,16 @@ export class AuthNonce {
   isUsed(): boolean {
     return this.usedAt !== null;
   }
+
+  markAsUsed(usedAt = new Date()): void {
+    if (this.isUsed()) {
+      throw new Error("Auth nonce has already been used");
+    }
+
+    if (this.isExpired(usedAt)) {
+      throw new Error("Auth nonce has expired");
+    }
+
+    this.usedAt = usedAt;
+  }
 }

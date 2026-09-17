@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { AuthNonce } from "./auth-nonce";
+import { AuthNonce } from "../../src/entities/auth-nonce";
 
 describe("AuthNonce", () => {
   it("creates a single-use login nonce with an expiration", () => {

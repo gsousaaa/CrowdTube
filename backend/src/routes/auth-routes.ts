@@ -49,4 +49,75 @@ export function registerAuthRoutes(
     },
     container.controllers.createAuthChallenge,
   );
+
+  app.post(
+    "/auth/verify",
+    {
+      schema: {
+        tags: ["Authentication"],
+        summary: "Valida a assinatura de um desafio",
+        description:
+          "Confirma a posse da carteira, consome o nonce e localiza ou cria o usuário.",
+        body: {
+          type: "object",
+          additionalProperties: false,
+          required: ["challengeId", "signature"],
+          properties: {
+            challengeId: {
+              type: "string",
+              format: "uuid",
+            },
+            signature: {
+              type: "string",
+              pattern: "^0x[a-fA-F0-9]+$",
+            },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            required: ["userId", "walletAddress", "isNewUser"],
+            properties: {
+              userId: { type: "string", format: "uuid" },
+              walletAddress: { type: "string" },
+              isNewUser: { type: "boolean" },
+            },
+          },
+          400: {
+            type: "object",
+            required: ["error", "message"],
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          401: {
+            type: "object",
+            required: ["error", "message"],
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          404: {
+            type: "object",
+            required: ["error", "message"],
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+          409: {
+            type: "object",
+            required: ["error", "message"],
+            properties: {
+              error: { type: "string" },
+              message: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    container.controllers.verifyAuthChallenge,
+  );
 }

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { DatabaseHealthGateway } from "../database/database-health-gateway";
-import { CheckHealthUseCase } from "./check-health-use-case";
+import type { DatabaseHealthGateway } from "../../src/database/database-health-gateway";
+import { CheckHealthUseCase } from "../../src/usecases/check-health-use-case";
 
 class DatabaseHealthGatewayStub implements DatabaseHealthGateway {
   pingWasCalled = false;

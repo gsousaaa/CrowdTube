@@ -1,6 +1,7 @@
 import type { AppConfig } from "../../../config/env";
 import { AuthNonce } from "../../entities/auth-nonce";
 import type { AuthNonceRepository } from "../../repository/auth-nonce-repository";
+import { buildAuthMessage, type AuthMessageConfig } from "./build-auth-message";
 
 export type CreateAuthChallengeInput = {
   walletAddress: string;
@@ -12,15 +13,13 @@ export type AuthChallenge = {
   expiresAt: string;
 };
 
-type AuthMessageConfig = Pick<
-  AppConfig,
-  "AUTH_DOMAIN" | "AUTH_URI" | "AUTH_CHAIN_ID" | "AUTH_NONCE_TTL_SECONDS"
->;
+type CreateAuthChallengeConfig = AuthMessageConfig &
+  Pick<AppConfig, "AUTH_NONCE_TTL_SECONDS">;
 
 export class CreateAuthChallengeUseCase {
   constructor(
     private readonly authNonces: AuthNonceRepository,
-    private readonly config: AuthMessageConfig,
+    private readonly config: CreateAuthChallengeConfig,
   ) {}
 
   async execute(input: CreateAuthChallengeInput): Promise<AuthChallenge> {
@@ -34,22 +33,8 @@ export class CreateAuthChallengeUseCase {
 
     return {
       challengeId: authNonce.id,
-      message: this.buildMessage(authNonce),
+      message: buildAuthMessage(authNonce, this.config),
       expiresAt: authNonce.expiresAt.toISOString(),
     };
-  }
-
-  private buildMessage(authNonce: AuthNonce): string {
-    return `${this.config.AUTH_DOMAIN} wants you to sign in with your Ethereum account:
-${authNonce.walletAddress}
-
-Sign in to CrowdTube.
-
-URI: ${this.config.AUTH_URI}
-Version: 1
-Chain ID: ${this.config.AUTH_CHAIN_ID}
-Nonce: ${authNonce.nonce}
-Issued At: ${authNonce.createdAt.toISOString()}
-Expiration Time: ${authNonce.expiresAt.toISOString()}`;
   }
 }

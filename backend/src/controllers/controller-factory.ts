@@ -4,7 +4,10 @@ import type { ControllerAdapter } from "./controller-types";
 type ControllerFactoryDependencies = {
   adapters: {
     checkHealth: ControllerAdapter;
-    createAuthChallenge: ControllerAdapter;
+    auth: {
+      createAuthChallenge: ControllerAdapter;
+      verifyAuthChallenge: ControllerAdapter;
+    }
   };
 };
 
@@ -13,8 +16,13 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
     health: makeBaseController({
       adapter: adapters.checkHealth,
     }),
-    createAuthChallenge: makeBaseController({
-      adapter: adapters.createAuthChallenge,
-    }),
+    auth: {
+      createAuthChallenge: makeBaseController({
+        adapter: adapters.auth.createAuthChallenge,
+      }),
+      verifyAuthChallenge: makeBaseController({
+        adapter: adapters.auth.verifyAuthChallenge,
+      })
+    }
   };
 }

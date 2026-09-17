@@ -13,7 +13,7 @@
     "migration:revert": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:revert -d dist/src/database/cli-data-source.js",
     "migration:run": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:run -d dist/src/database/cli-data-source.js",
     "start": "node --env-file=.env dist/src/server.js",
-    "test": "npm run build && node --test dist/src/entities/auth-nonce.test.js dist/src/entities/user.test.js dist/src/entities/user-wallet.test.js dist/src/usecases/check-health-use-case.test.js dist/src/usecases/create-auth-challenge-use-case.test.js"
+    "test": "tsc -p tsconfig.test.json && node --test dist/test/adapters/auth/viem-wallet-signature-verifier.test.js dist/test/entities/auth-nonce.test.js dist/test/entities/user.test.js dist/test/entities/user-wallet.test.js dist/test/usecases/check-health-use-case.test.js dist/test/usecases/auth/create-auth-challenge-use-case.test.js dist/test/usecases/auth/verify-auth-challenge-use-case.test.js"
   },
   "keywords": [],
   "author": "gsousaaa",
@@ -28,6 +28,7 @@
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "typeorm": "^1.1.1",
+    "viem": "^2.56.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {

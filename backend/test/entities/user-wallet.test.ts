@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { UserWallet, normalizeWalletAddress } from "./user-wallet";
+import {
+  UserWallet,
+  normalizeWalletAddress,
+} from "../../src/entities/user-wallet";
 
 const mixedCaseWallet = "0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD";
 
