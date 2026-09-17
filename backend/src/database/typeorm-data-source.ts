@@ -1,0 +1,19 @@
+import "reflect-metadata";
+import { DataSource } from "typeorm";
+
+import type { AppConfig } from "../../config/env";
+
+export function makeTypeOrmDataSource(config: AppConfig): DataSource {
+  return new DataSource({
+    type: "postgres",
+    host: config.DB_HOST,
+    port: config.DB_PORT,
+    username: config.DB_USER,
+    password: config.DB_PASSWORD,
+    database: config.DB_NAME,
+    entities: [],
+    migrations: ["dist/src/database/migrations/*.js"],
+    synchronize: false,
+    logging: config.NODE_ENV === "dev" ? ["error", "warn"] : false,
+  });
+}
