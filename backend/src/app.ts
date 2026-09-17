@@ -8,7 +8,18 @@ import type { AppConfig } from "../config/env";
 import { makeSwaggerOptions, swaggerUiOptions } from "../config/swagger";
 import type { AppContainer } from "./container";
 import { AppError } from "./errors/app-error";
+import { registerAuthRoutes } from "./routes/auth-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
+
+function isValidationError(
+  error: unknown,
+): error is { validation: unknown; message: string } {
+  return (
+    error instanceof Error &&
+    "validation" in error &&
+    error.validation !== undefined
+  );
+}
 
 export async function makeApp(
   config: AppConfig,
@@ -26,6 +37,13 @@ export async function makeApp(
   await app.register(swaggerUi, swaggerUiOptions);
 
   app.setErrorHandler((error, request, reply) => {
+    if (isValidationError(error)) {
+      return reply.code(400).send({
+        error: "VALIDATION_ERROR",
+        message: error.message,
+      });
+    }
+
     if (error instanceof AppError) {
       return reply.code(error.statusCode).send({
         error: error.code,
@@ -41,6 +59,7 @@ export async function makeApp(
     });
   });
 
+  registerAuthRoutes(app, container);
   registerHealthRoutes(app, container);
 
   return app;

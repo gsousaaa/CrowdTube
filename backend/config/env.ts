@@ -10,6 +10,10 @@ const envSchema = z.object({
   DB_PASSWORD: z.string().min(1),
   DB_NAME: z.string().min(1),
   FRONTEND_ORIGIN: z.url().default("http://localhost:3000"),
+  AUTH_DOMAIN: z.string().min(1).default("localhost:3000"),
+  AUTH_URI: z.url().default("http://localhost:3000"),
+  AUTH_CHAIN_ID: z.coerce.number().int().positive().default(31_337),
+  AUTH_NONCE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

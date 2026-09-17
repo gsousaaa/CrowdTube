@@ -13,7 +13,7 @@
     "migration:revert": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:revert -d dist/src/database/cli-data-source.js",
     "migration:run": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:run -d dist/src/database/cli-data-source.js",
     "start": "node --env-file=.env dist/src/server.js",
-    "test": "npm run build && node --test dist/src/entities/user.test.js dist/src/entities/user-wallet.test.js dist/src/usecases/check-health-use-case.test.js"
+    "test": "npm run build && node --test dist/src/entities/auth-nonce.test.js dist/src/entities/user.test.js dist/src/entities/user-wallet.test.js dist/src/usecases/check-health-use-case.test.js dist/src/usecases/create-auth-challenge-use-case.test.js"
   },
   "keywords": [],
   "author": "gsousaaa",

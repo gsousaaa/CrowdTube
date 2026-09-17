@@ -20,6 +20,10 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
       ],
       tags: [
         {
+          name: "Authentication",
+          description: "Desafios e sessões baseados em assinatura de carteira.",
+        },
+        {
           name: "Health",
           description: "Estado da aplicação e de suas dependências.",
         },
