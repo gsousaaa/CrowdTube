@@ -16,7 +16,17 @@ export function makeBaseController({ adapter }: BaseControllerDependencies) {
       params: request.params,
       query: request.query,
       headers: request.headers,
+      cookies: request.cookies,
+      authenticatedUser: request.authenticatedUser,
     });
+
+    for (const cookie of response.cookies ?? []) {
+      reply.setCookie(cookie.name, cookie.value, cookie.options);
+    }
+
+    for (const cookie of response.clearCookies ?? []) {
+      reply.clearCookie(cookie.name, cookie.options);
+    }
 
     await reply.code(response.statusCode).send(response.body);
   };

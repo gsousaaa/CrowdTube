@@ -1,4 +1,5 @@
 import type { AuthNonce } from "../../entities/auth-nonce";
+import { AuthSession } from "../../entities/auth-session";
 import { User } from "../../entities/user";
 import { UserWallet } from "../../entities/user-wallet";
 import { AppError } from "../../errors/app-error";
@@ -6,6 +7,7 @@ import type { AuthNonceRepository } from "../../repository/auth-nonce-repository
 import type { AuthUnitOfWork } from "./auth-unit-of-work";
 import { buildAuthMessage, type AuthMessageConfig } from "./build-auth-message";
 import type { WalletSignatureVerifier } from "./wallet-signature-verifier";
+import type { SessionTokenManager } from "./session-token-manager";
 
 export type VerifyAuthChallengeInput = {
   challengeId: string;
@@ -18,18 +20,28 @@ export type AuthenticatedUser = {
   isNewUser: boolean;
 };
 
+export type VerifiedAuthChallenge = AuthenticatedUser & {
+  sessionToken: string;
+  sessionExpiresAt: Date;
+};
+
+type VerifyAuthChallengeConfig = AuthMessageConfig & {
+  AUTH_SESSION_TTL_SECONDS: number;
+};
+
 export class VerifyAuthChallengeUseCase {
   constructor(
     private readonly authNonces: AuthNonceRepository,
     private readonly transaction: AuthUnitOfWork,
     private readonly signatureVerifier: WalletSignatureVerifier,
-    private readonly config: AuthMessageConfig,
+    private readonly sessionTokens: SessionTokenManager,
+    private readonly config: VerifyAuthChallengeConfig,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
   async execute(
     input: VerifyAuthChallengeInput,
-  ): Promise<AuthenticatedUser> {
+  ): Promise<VerifiedAuthChallenge> {
     const authNonce = await this.authNonces.findById(input.challengeId);
     const verificationTime = this.now();
 
@@ -64,10 +76,16 @@ export class VerifyAuthChallengeUseCase {
           lockedNonce.walletAddress,
         );
 
-      if (existingWallet) {
-        const user = await repositories.users.findById(existingWallet.userId);
+      let user: User;
+      let wallet: UserWallet;
+      let isNewUser: boolean;
 
-        if (!user) {
+      if (existingWallet) {
+        const existingUser = await repositories.users.findById(
+          existingWallet.userId,
+        );
+
+        if (!existingUser) {
           throw new AppError(
             "The wallet owner could not be found.",
             500,
@@ -75,27 +93,39 @@ export class VerifyAuthChallengeUseCase {
           );
         }
 
-        return {
-          userId: user.id,
-          walletAddress: existingWallet.walletAddress,
-          isNewUser: false,
-        };
+        user = existingUser;
+        wallet = existingWallet;
+        isNewUser = false;
+      } else {
+        user = await repositories.users.save(User.create());
+        wallet = await repositories.userWallets.save(
+          UserWallet.create({
+            userId: user.id,
+            walletAddress: lockedNonce.walletAddress,
+            isPrimary: true,
+            verifiedAt: consumptionTime,
+          }),
+        );
+        isNewUser = true;
       }
 
-      const user = await repositories.users.save(User.create());
-      const wallet = await repositories.userWallets.save(
-        UserWallet.create({
+      const sessionToken = this.sessionTokens.create();
+      const session = await repositories.authSessions.save(
+        AuthSession.create({
           userId: user.id,
-          walletAddress: lockedNonce.walletAddress,
-          isPrimary: true,
-          verifiedAt: consumptionTime,
+          walletId: wallet.id,
+          tokenHash: sessionToken.hash,
+          ttlSeconds: this.config.AUTH_SESSION_TTL_SECONDS,
+          now: consumptionTime,
         }),
       );
 
       return {
         userId: user.id,
         walletAddress: wallet.walletAddress,
-        isNewUser: true,
+        isNewUser,
+        sessionToken: sessionToken.raw,
+        sessionExpiresAt: session.expiresAt,
       };
     });
   }

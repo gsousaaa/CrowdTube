@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { AuthNonce } from "../../../src/entities/auth-nonce";
+import type { AuthSession } from "../../../src/entities/auth-session";
 import type { User } from "../../../src/entities/user";
 import type { UserWallet } from "../../../src/entities/user-wallet";
 import { AppError } from "../../../src/errors/app-error";
 import type { AuthNonceRepository } from "../../../src/repository/auth-nonce-repository";
+import type { AuthSessionRepository } from "../../../src/repository/auth-session-repository";
 import type { UserRepository } from "../../../src/repository/user-repository";
 import type { UserWalletRepository } from "../../../src/repository/user-wallet-repository";
 import type {
@@ -13,6 +15,10 @@ import type {
   AuthUnitOfWorkRepositories,
 } from "../../../src/usecases/auth/auth-unit-of-work";
 import { VerifyAuthChallengeUseCase } from "../../../src/usecases/auth/verify-auth-challenge-use-case";
+import type {
+  SessionToken,
+  SessionTokenManager,
+} from "../../../src/usecases/auth/session-token-manager";
 import type { WalletSignatureVerifier } from "../../../src/usecases/auth/wallet-signature-verifier";
 
 class InMemoryAuthNonceRepository implements AuthNonceRepository {
@@ -56,6 +62,30 @@ class InMemoryUserRepository implements UserRepository {
   }
 
   async remove(entity: User): Promise<void> {
+    const index = this.items.indexOf(entity);
+    if (index >= 0) this.items.splice(index, 1);
+  }
+}
+
+class InMemoryAuthSessionRepository implements AuthSessionRepository {
+  readonly items: AuthSession[] = [];
+
+  findById(id: string): Promise<AuthSession | null> {
+    return Promise.resolve(this.items.find((item) => item.id === id) ?? null);
+  }
+
+  findByTokenHash(tokenHash: string): Promise<AuthSession | null> {
+    return Promise.resolve(
+      this.items.find((item) => item.tokenHash === tokenHash) ?? null,
+    );
+  }
+
+  save(entity: AuthSession): Promise<AuthSession> {
+    if (!this.items.includes(entity)) this.items.push(entity);
+    return Promise.resolve(entity);
+  }
+
+  async remove(entity: AuthSession): Promise<void> {
     const index = this.items.indexOf(entity);
     if (index >= 0) this.items.splice(index, 1);
   }
@@ -111,23 +141,36 @@ class WalletSignatureVerifierStub implements WalletSignatureVerifier {
   }
 }
 
+class SessionTokenManagerStub implements SessionTokenManager {
+  create(): SessionToken {
+    return { raw: "raw-session-token", hash: "a".repeat(64) };
+  }
+
+  hash(): string {
+    return "a".repeat(64);
+  }
+}
+
 const now = new Date("2026-09-17T12:00:00.000Z");
 const walletAddress = "0x0000000000000000000000000000000000000001";
 const config = {
   AUTH_DOMAIN: "localhost:3000",
   AUTH_URI: "http://localhost:3000",
   AUTH_CHAIN_ID: 31_337,
+  AUTH_SESSION_TTL_SECONDS: 604_800,
 };
 
 function makeScenario(signatureIsValid = true) {
   const authNonces = new InMemoryAuthNonceRepository();
+  const authSessions = new InMemoryAuthSessionRepository();
   const users = new InMemoryUserRepository();
   const userWallets = new InMemoryUserWalletRepository();
-  const repositories = { authNonces, users, userWallets };
+  const repositories = { authNonces, authSessions, users, userWallets };
   const useCase = new VerifyAuthChallengeUseCase(
     authNonces,
     new AuthUnitOfWorkStub(repositories),
     new WalletSignatureVerifierStub(signatureIsValid),
+    new SessionTokenManagerStub(),
     config,
     () => now,
   );
@@ -156,6 +199,8 @@ describe("VerifyAuthChallengeUseCase", () => {
     assert.equal(repositories.users.items.length, 1);
     assert.equal(repositories.userWallets.items.length, 1);
     assert.equal(repositories.userWallets.items[0]?.isPrimary, true);
+    assert.equal(repositories.authSessions.items.length, 1);
+    assert.equal(result.sessionToken, "raw-session-token");
   });
 
   it("returns the existing user for an already linked wallet", async () => {
@@ -181,6 +226,7 @@ describe("VerifyAuthChallengeUseCase", () => {
     assert.equal(secondLogin.userId, firstLogin.userId);
     assert.equal(repositories.users.items.length, 1);
     assert.equal(repositories.userWallets.items.length, 1);
+    assert.equal(repositories.authSessions.items.length, 2);
   });
 
   it("rejects an invalid signature without consuming the nonce", async () => {
@@ -213,6 +259,7 @@ describe("VerifyAuthChallengeUseCase", () => {
       repositories.authNonces,
       new AuthUnitOfWorkStub(repositories),
       new WalletSignatureVerifierStub(true),
+      new SessionTokenManagerStub(),
       config,
       () => new Date("2026-09-17T12:05:00.000Z"),
     );

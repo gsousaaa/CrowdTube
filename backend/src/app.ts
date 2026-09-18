@@ -1,3 +1,4 @@
+import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
 import swagger from "@fastify/swagger";
@@ -31,10 +32,13 @@ export async function makeApp(
 
   await app.register(cors, {
     origin: config.FRONTEND_ORIGIN,
+    credentials: true,
   });
+  await app.register(cookie);
   await app.register(sensible);
   await app.register(swagger, makeSwaggerOptions(config));
   await app.register(swaggerUi, swaggerUiOptions);
+  app.decorateRequest("authenticatedUser", null);
 
   app.setErrorHandler((error, request, reply) => {
     if (isValidationError(error)) {

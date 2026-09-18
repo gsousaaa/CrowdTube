@@ -14,6 +14,12 @@ const envSchema = z.object({
   AUTH_URI: z.url().default("http://localhost:3000"),
   AUTH_CHAIN_ID: z.coerce.number().int().positive().default(31_337),
   AUTH_NONCE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  AUTH_SESSION_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60 * 60 * 24 * 7),
+  AUTH_SESSION_COOKIE_NAME: z.string().min(1).default("crowdtube_session"),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
