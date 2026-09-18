@@ -7,7 +7,9 @@ type ControllerFactoryDependencies = {
     auth: {
       createAuthChallenge: ControllerAdapter;
       verifyAuthChallenge: ControllerAdapter;
-    }
+      getCurrentUser: ControllerAdapter;
+      logout: ControllerAdapter;
+    };
   };
 };
 
@@ -22,7 +24,13 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       verifyAuthChallenge: makeBaseController({
         adapter: adapters.auth.verifyAuthChallenge,
-      })
-    }
+      }),
+      getCurrentUser: makeBaseController({
+        adapter: adapters.auth.getCurrentUser,
+      }),
+      logout: makeBaseController({
+        adapter: adapters.auth.logout,
+      }),
+    },
   };
 }

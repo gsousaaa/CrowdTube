@@ -11,6 +11,7 @@ import type { AppContainer } from "./container";
 import { AppError } from "./errors/app-error";
 import { registerAuthRoutes } from "./routes/auth-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
+import { registerSharedSchemas } from "./routes/schemas";
 
 function isValidationError(
   error: unknown,
@@ -39,6 +40,7 @@ export async function makeApp(
   await app.register(swagger, makeSwaggerOptions(config));
   await app.register(swaggerUi, swaggerUiOptions);
   app.decorateRequest("authenticatedUser", null);
+  registerSharedSchemas(app);
 
   app.setErrorHandler((error, request, reply) => {
     if (isValidationError(error)) {

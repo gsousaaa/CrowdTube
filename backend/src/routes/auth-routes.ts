@@ -47,7 +47,7 @@ export function registerAuthRoutes(
         },
       },
     },
-    container.controllers.createAuthChallenge,
+    container.controllers.auth.createAuthChallenge,
   );
 
   app.post(
@@ -118,6 +118,39 @@ export function registerAuthRoutes(
         },
       },
     },
-    container.controllers.verifyAuthChallenge,
+    container.controllers.auth.verifyAuthChallenge,
+  );
+
+  app.get(
+    "/auth/me",
+    {
+      preHandler: container.authenticationGuard,
+      schema: {
+        tags: ["Authentication"],
+        summary: "Retorna o usuário da sessão atual",
+        security: [{ cookieAuth: [] }],
+        response: {
+          200: { $ref: "currentUserProfile#" },
+          401: { $ref: "errorResponse#" },
+        },
+      },
+    },
+    container.controllers.auth.getCurrentUser,
+  );
+
+  app.post(
+    "/auth/logout",
+    {
+      schema: {
+        tags: ["Authentication"],
+        summary: "Encerra a sessão atual",
+        description:
+          "Revoga a sessão quando ela existe e remove o cookie de autenticação.",
+        response: {
+          204: { type: "null" },
+        },
+      },
+    },
+    container.controllers.auth.logout,
   );
 }
