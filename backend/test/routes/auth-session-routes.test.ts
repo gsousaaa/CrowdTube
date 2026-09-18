@@ -28,6 +28,10 @@ it("protects private routes and clears the cookie on logout", async () => {
 
   try {
     const meResponse = await app.inject({ method: "GET", url: "/auth/me" });
+    const adminResponse = await app.inject({
+      method: "GET",
+      url: "/admin/profile",
+    });
     const logoutResponse = await app.inject({
       method: "POST",
       url: "/auth/logout",
@@ -35,6 +39,8 @@ it("protects private routes and clears the cookie on logout", async () => {
 
     assert.equal(meResponse.statusCode, 401);
     assert.equal(meResponse.json().error, "UNAUTHENTICATED");
+    assert.equal(adminResponse.statusCode, 401);
+    assert.equal(adminResponse.json().error, "UNAUTHENTICATED");
     assert.equal(logoutResponse.statusCode, 204);
     const setCookie = logoutResponse.headers["set-cookie"];
     assert.match(
