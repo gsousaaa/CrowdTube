@@ -1,6 +1,8 @@
 import type { AppConfig } from "../config/env";
 import { ViemWalletSignatureVerifier } from "../common/lib/viem/viem-wallet-signature-verifier";
+import { makeGetAdminProfileAdapter } from "./adapters/admin/get-admin-profile-adapter";
 import { makeCheckHealthAdapter } from "./adapters/check-health-adapter";
+import { makeUpdateAdminProfileAdapter } from "./adapters/admin/update-admin-profile-adapter";
 import { makeAuthenticationGuard } from "./adapters/auth/authentication-guard";
 import { makeCreateAuthChallengeAdapter } from "./adapters/auth/create-auth-challenge-adapter";
 import { makeGetCurrentUserAdapter } from "./adapters/auth/get-current-user-adapter";
@@ -25,6 +27,8 @@ import { CreateAuthChallengeUseCase } from "./usecases/auth/create-auth-challeng
 import { GetCurrentUserUseCase } from "./usecases/auth/get-current-user-use-case";
 import { LogoutUseCase } from "./usecases/auth/logout-use-case";
 import { VerifyAuthChallengeUseCase } from "./usecases/auth/verify-auth-challenge-use-case";
+import { GetAdminProfileUseCase } from "./usecases/admin/get-admin-profile-use-case";
+import { UpdateAdminProfileUseCase } from "./usecases/admin/update-admin-profile-use-case";
 
 export function makeContainer(config: AppConfig) {
   const dataSource = makeTypeOrmDataSource(config);
@@ -46,6 +50,11 @@ export function makeContainer(config: AppConfig) {
       dataSource.getRepository(UserWallet),
     ),
   };
+
+  const getAdminProfile = new GetAdminProfileUseCase(
+    repositories.users,
+    repositories.userWallets,
+  );
 
   const useCases = {
     checkHealth: new CheckHealthUseCase(databaseHealth),
@@ -72,6 +81,13 @@ export function makeContainer(config: AppConfig) {
       ),
       logout: new LogoutUseCase(repositories.authSessions, sessionTokens),
     },
+    admin: {
+      getProfile: getAdminProfile,
+      updateProfile: new UpdateAdminProfileUseCase(
+        repositories.users,
+        getAdminProfile,
+      ),
+    },
   };
 
   const adapters = {
@@ -92,6 +108,14 @@ export function makeContainer(config: AppConfig) {
       logout: makeLogoutAdapter({
         logout: useCases.auth.logout,
         config,
+      }),
+    },
+    admin: {
+      getProfile: makeGetAdminProfileAdapter({
+        getAdminProfile: useCases.admin.getProfile,
+      }),
+      updateProfile: makeUpdateAdminProfileAdapter({
+        updateAdminProfile: useCases.admin.updateProfile,
       }),
     },
   };

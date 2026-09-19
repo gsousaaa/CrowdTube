@@ -7,6 +7,11 @@ export type CreateUserInput = {
   avatarUrl?: string | null;
 };
 
+export type UpdateUserProfileInput = Pick<
+  CreateUserInput,
+  "displayName" | "bio" | "youtubeChannelUrl"
+>;
+
 export class User {
   id!: string;
   displayName!: string | null;
@@ -29,5 +34,21 @@ export class User {
     user.updatedAt = now;
 
     return user;
+  }
+
+  updateProfile(input: UpdateUserProfileInput, now = new Date()): void {
+    if ("displayName" in input) {
+      this.displayName = input.displayName?.trim() || null;
+    }
+
+    if ("bio" in input) {
+      this.bio = input.bio?.trim() || null;
+    }
+
+    if ("youtubeChannelUrl" in input) {
+      this.youtubeChannelUrl = input.youtubeChannelUrl?.trim() || null;
+    }
+
+    this.updatedAt = now;
   }
 }
