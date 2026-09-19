@@ -14,6 +14,10 @@ type ControllerFactoryDependencies = {
       getProfile: ControllerAdapter;
       updateProfile: ControllerAdapter;
     };
+    media: {
+      createUploadUrl: ControllerAdapter;
+      get: ControllerAdapter;
+    };
   };
 };
 
@@ -42,6 +46,14 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       updateProfile: makeBaseController({
         adapter: adapters.admin.updateProfile,
+      }),
+    },
+    media: {
+      createUploadUrl: makeBaseController({
+        adapter: adapters.media.createUploadUrl,
+      }),
+      get: makeBaseController({
+        adapter: adapters.media.get,
       }),
     },
   };

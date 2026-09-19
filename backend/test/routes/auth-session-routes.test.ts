@@ -21,6 +21,10 @@ const config: AppConfig = {
   AUTH_NONCE_TTL_SECONDS: 300,
   AUTH_SESSION_TTL_SECONDS: 604_800,
   AUTH_SESSION_COOKIE_NAME: "crowdtube_session",
+  AWS_REGION: "us-east-1",
+  AWS_S3_BUCKET_NAME: "crowdtube-test",
+  AWS_S3_UPLOAD_URL_TTL_SECONDS: 300,
+  AWS_S3_READ_URL_TTL_SECONDS: 300,
 };
 
 it("protects private routes and clears the cookie on logout", async () => {
@@ -37,6 +41,19 @@ it("protects private routes and clears the cookie on logout", async () => {
       url: "/admin/profile",
       payload: { displayName: "Creator" },
     });
+    const createMediaResponse = await app.inject({
+      method: "POST",
+      url: "/uploads/media",
+      payload: {
+        fileName: "avatar.png",
+        contentType: "image/png",
+        purpose: "profile-avatar",
+      },
+    });
+    const invalidPublicMediaResponse = await app.inject({
+      method: "GET",
+      url: "/uploads/media",
+    });
     const logoutResponse = await app.inject({
       method: "POST",
       url: "/auth/logout",
@@ -48,6 +65,9 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(adminResponse.json().error, "UNAUTHENTICATED");
     assert.equal(updateAdminResponse.statusCode, 401);
     assert.equal(updateAdminResponse.json().error, "UNAUTHENTICATED");
+    assert.equal(createMediaResponse.statusCode, 401);
+    assert.equal(createMediaResponse.json().error, "UNAUTHENTICATED");
+    assert.equal(invalidPublicMediaResponse.statusCode, 400);
     assert.equal(logoutResponse.statusCode, 204);
     const setCookie = logoutResponse.headers["set-cookie"];
     assert.match(
