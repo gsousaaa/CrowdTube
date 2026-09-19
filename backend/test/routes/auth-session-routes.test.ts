@@ -32,6 +32,11 @@ it("protects private routes and clears the cookie on logout", async () => {
       method: "GET",
       url: "/admin/profile",
     });
+    const updateAdminResponse = await app.inject({
+      method: "PATCH",
+      url: "/admin/profile",
+      payload: { displayName: "Creator" },
+    });
     const logoutResponse = await app.inject({
       method: "POST",
       url: "/auth/logout",
@@ -41,6 +46,8 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(meResponse.json().error, "UNAUTHENTICATED");
     assert.equal(adminResponse.statusCode, 401);
     assert.equal(adminResponse.json().error, "UNAUTHENTICATED");
+    assert.equal(updateAdminResponse.statusCode, 401);
+    assert.equal(updateAdminResponse.json().error, "UNAUTHENTICATED");
     assert.equal(logoutResponse.statusCode, 204);
     const setCookie = logoutResponse.headers["set-cookie"];
     assert.match(

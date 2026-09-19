@@ -10,6 +10,10 @@ type ControllerFactoryDependencies = {
       getCurrentUser: ControllerAdapter;
       logout: ControllerAdapter;
     };
+    admin: {
+      getProfile: ControllerAdapter;
+      updateProfile: ControllerAdapter;
+    };
   };
 };
 
@@ -30,6 +34,14 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       logout: makeBaseController({
         adapter: adapters.auth.logout,
+      }),
+    },
+    admin: {
+      getProfile: makeBaseController({
+        adapter: adapters.admin.getProfile,
+      }),
+      updateProfile: makeBaseController({
+        adapter: adapters.admin.updateProfile,
       }),
     },
   };
