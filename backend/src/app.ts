@@ -12,6 +12,7 @@ import { AppError } from "./errors/app-error";
 import { registerAdminRoutes } from "./routes/admin-routes";
 import { registerAuthRoutes } from "./routes/auth-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
+import { registerMediaRoutes } from "./routes/media-routes";
 import { registerSharedSchemas } from "./routes/schemas";
 
 function isValidationError(
@@ -68,6 +69,7 @@ export async function makeApp(
 
   registerAuthRoutes(app, container);
   registerAdminRoutes(app, container);
+  registerMediaRoutes(app, container);
   registerHealthRoutes(app, container);
 
   return app;

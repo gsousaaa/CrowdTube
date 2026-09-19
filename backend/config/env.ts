@@ -20,6 +20,20 @@ const envSchema = z.object({
     .positive()
     .default(60 * 60 * 24 * 7),
   AUTH_SESSION_COOKIE_NAME: z.string().min(1).default("crowdtube_session"),
+  AWS_REGION: z.string().min(1),
+  AWS_S3_BUCKET_NAME: z.string().min(1),
+  AWS_S3_UPLOAD_URL_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(3_600)
+    .default(300),
+  AWS_S3_READ_URL_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(3_600)
+    .default(300),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

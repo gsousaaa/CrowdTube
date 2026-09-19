@@ -1,5 +1,9 @@
 import type { AppConfig } from "../config/env";
+import { makeS3Client } from "../common/lib/aws/s3/s3-client";
+import { S3MediaStorage } from "../common/lib/aws/s3/s3-media-storage";
 import { ViemWalletSignatureVerifier } from "../common/lib/viem/viem-wallet-signature-verifier";
+import { makeCreateMediaUploadUrlAdapter } from "./adapters/media/create-media-upload-url-adapter";
+import { makeGetMediaAdapter } from "./adapters/media/get-media-adapter";
 import { makeGetAdminProfileAdapter } from "./adapters/admin/get-admin-profile-adapter";
 import { makeCheckHealthAdapter } from "./adapters/check-health-adapter";
 import { makeUpdateAdminProfileAdapter } from "./adapters/admin/update-admin-profile-adapter";
@@ -29,6 +33,8 @@ import { LogoutUseCase } from "./usecases/auth/logout-use-case";
 import { VerifyAuthChallengeUseCase } from "./usecases/auth/verify-auth-challenge-use-case";
 import { GetAdminProfileUseCase } from "./usecases/admin/get-admin-profile-use-case";
 import { UpdateAdminProfileUseCase } from "./usecases/admin/update-admin-profile-use-case";
+import { CreateMediaUploadUrlUseCase } from "./usecases/media/create-media-upload-url-use-case";
+import { GetMediaUseCase } from "./usecases/media/get-media-use-case";
 
 export function makeContainer(config: AppConfig) {
   const dataSource = makeTypeOrmDataSource(config);
@@ -37,6 +43,10 @@ export function makeContainer(config: AppConfig) {
   const authUnitOfWork = new TypeOrmAuthUnitOfWork(dataSource);
   const walletSignatureVerifier = new ViemWalletSignatureVerifier();
   const sessionTokens = new NodeSessionTokenManager();
+  const mediaStorage = new S3MediaStorage(
+    makeS3Client(config.AWS_REGION),
+    config.AWS_S3_BUCKET_NAME,
+  );
 
   const repositories = {
     authNonces: new TypeOrmAuthNonceRepository(
@@ -88,6 +98,16 @@ export function makeContainer(config: AppConfig) {
         getAdminProfile,
       ),
     },
+    media: {
+      createUploadUrl: new CreateMediaUploadUrlUseCase(
+        mediaStorage,
+        config.AWS_S3_UPLOAD_URL_TTL_SECONDS,
+      ),
+      getMedia: new GetMediaUseCase(
+        mediaStorage,
+        config.AWS_S3_READ_URL_TTL_SECONDS,
+      ),
+    },
   };
 
   const adapters = {
@@ -116,6 +136,14 @@ export function makeContainer(config: AppConfig) {
       }),
       updateProfile: makeUpdateAdminProfileAdapter({
         updateAdminProfile: useCases.admin.updateProfile,
+      }),
+    },
+    media: {
+      createUploadUrl: makeCreateMediaUploadUrlAdapter({
+        createMediaUploadUrl: useCases.media.createUploadUrl,
+      }),
+      get: makeGetMediaAdapter({
+        getMedia: useCases.media.getMedia,
       }),
     },
   };
