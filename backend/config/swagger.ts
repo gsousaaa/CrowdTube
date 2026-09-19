@@ -37,6 +37,10 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
           description: "Operações protegidas do painel do criador.",
         },
         {
+          name: "Media",
+          description: "Leitura pública de imagens de perfis e campanhas.",
+        },
+        {
           name: "Health",
           description: "Estado da aplicação e de suas dependências.",
         },
