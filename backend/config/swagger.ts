@@ -12,6 +12,15 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
           "API de metadados offchain, autenticação e indexação onchain do CrowdTube.",
         version: "0.1.0",
       },
+      components: {
+        securitySchemes: {
+          cookieAuth: {
+            type: "apiKey",
+            in: "cookie",
+            name: config.AUTH_SESSION_COOKIE_NAME,
+          },
+        },
+      },
       servers: [
         {
           url: `http://localhost:${config.PORT}`,
@@ -22,6 +31,10 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
         {
           name: "Authentication",
           description: "Desafios e sessões baseados em assinatura de carteira.",
+        },
+        {
+          name: "Admin",
+          description: "Operações protegidas do painel do criador.",
         },
         {
           name: "Health",

@@ -13,13 +13,14 @@
     "migration:revert": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:revert -d dist/src/database/cli-data-source.js",
     "migration:run": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:run -d dist/src/database/cli-data-source.js",
     "start": "node --env-file=.env dist/src/server.js",
-    "test": "tsc -p tsconfig.test.json && node --test dist/test/adapters/auth/viem-wallet-signature-verifier.test.js dist/test/entities/auth-nonce.test.js dist/test/entities/user.test.js dist/test/entities/user-wallet.test.js dist/test/usecases/check-health-use-case.test.js dist/test/usecases/auth/create-auth-challenge-use-case.test.js dist/test/usecases/auth/verify-auth-challenge-use-case.test.js"
+    "test": "tsc -p tsconfig.test.json && node --test \"dist/test/**/*.test.js\""
   },
   "keywords": [],
   "author": "gsousaaa",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/sensible": "^6.0.5",
     "@fastify/swagger": "^9.8.1",

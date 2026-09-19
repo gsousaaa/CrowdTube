@@ -1,3 +1,4 @@
+import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
 import swagger from "@fastify/swagger";
@@ -8,8 +9,10 @@ import type { AppConfig } from "../config/env";
 import { makeSwaggerOptions, swaggerUiOptions } from "../config/swagger";
 import type { AppContainer } from "./container";
 import { AppError } from "./errors/app-error";
+import { registerAdminRoutes } from "./routes/admin-routes";
 import { registerAuthRoutes } from "./routes/auth-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
+import { registerSharedSchemas } from "./routes/schemas";
 
 function isValidationError(
   error: unknown,
@@ -31,10 +34,14 @@ export async function makeApp(
 
   await app.register(cors, {
     origin: config.FRONTEND_ORIGIN,
+    credentials: true,
   });
+  await app.register(cookie);
   await app.register(sensible);
   await app.register(swagger, makeSwaggerOptions(config));
   await app.register(swaggerUi, swaggerUiOptions);
+  app.decorateRequest("authenticatedUser", null);
+  registerSharedSchemas(app);
 
   app.setErrorHandler((error, request, reply) => {
     if (isValidationError(error)) {
@@ -60,6 +67,7 @@ export async function makeApp(
   });
 
   registerAuthRoutes(app, container);
+  registerAdminRoutes(app, container);
   registerHealthRoutes(app, container);
 
   return app;
