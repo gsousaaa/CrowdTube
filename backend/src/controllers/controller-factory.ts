@@ -10,9 +10,9 @@ type ControllerFactoryDependencies = {
       getCurrentUser: ControllerAdapter;
       logout: ControllerAdapter;
     };
-    admin: {
-      getProfile: ControllerAdapter;
-      updateProfile: ControllerAdapter;
+    profile: {
+      get: ControllerAdapter;
+      update: ControllerAdapter;
     };
     media: {
       createUploadUrl: ControllerAdapter;
@@ -46,12 +46,12 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
         adapter: adapters.auth.logout,
       }),
     },
-    admin: {
-      getProfile: makeBaseController({
-        adapter: adapters.admin.getProfile,
+    profile: {
+      get: makeBaseController({
+        adapter: adapters.profile.get,
       }),
-      updateProfile: makeBaseController({
-        adapter: adapters.admin.updateProfile,
+      update: makeBaseController({
+        adapter: adapters.profile.update,
       }),
     },
     media: {

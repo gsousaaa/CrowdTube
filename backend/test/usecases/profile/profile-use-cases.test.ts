@@ -6,8 +6,8 @@ import { UserWallet } from "../../../src/entities/user-wallet";
 import { AppError } from "../../../src/errors/app-error";
 import type { UserRepository } from "../../../src/repository/user-repository";
 import type { UserWalletRepository } from "../../../src/repository/user-wallet-repository";
-import { GetAdminProfileUseCase } from "../../../src/usecases/admin/get-admin-profile-use-case";
-import { UpdateAdminProfileUseCase } from "../../../src/usecases/admin/update-admin-profile-use-case";
+import { GetProfileUseCase } from "../../../src/usecases/profile/get-profile-use-case";
+import { UpdateProfileUseCase } from "../../../src/usecases/profile/update-profile-use-case";
 
 class InMemoryUserRepository implements UserRepository {
   readonly items: User[] = [];
@@ -76,8 +76,8 @@ function makeScenario() {
   users.items.push(user);
   userWallets.items.push(wallet);
 
-  const getProfile = new GetAdminProfileUseCase(users, userWallets);
-  const updateProfile = new UpdateAdminProfileUseCase(
+  const getProfile = new GetProfileUseCase(users, userWallets);
+  const updateProfile = new UpdateProfileUseCase(
     users,
     getProfile,
     () => now,
@@ -86,7 +86,7 @@ function makeScenario() {
   return { getProfile, updateProfile, user };
 }
 
-describe("admin profile use cases", () => {
+describe("profile use cases", () => {
   it("returns the authenticated creator profile and wallets", async () => {
     const { getProfile, user } = makeScenario();
 

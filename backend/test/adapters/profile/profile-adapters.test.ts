@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { makeGetAdminProfileAdapter } from "../../../src/adapters/admin/get-admin-profile-adapter";
-import { makeUpdateAdminProfileAdapter } from "../../../src/adapters/admin/update-admin-profile-adapter";
+import { makeGetProfileAdapter } from "../../../src/adapters/profile/get-profile-adapter";
+import { makeUpdateProfileAdapter } from "../../../src/adapters/profile/update-profile-adapter";
 import { AppError } from "../../../src/errors/app-error";
-import type { UpdateAdminProfileInput } from "../../../src/usecases/admin/update-admin-profile-use-case";
+import type { UpdateProfileInput } from "../../../src/usecases/profile/update-profile-use-case";
 
 const userId = "c5b54171-8094-4235-a52b-7500633642d7";
 const walletAddress = "0x0000000000000000000000000000000000000001";
@@ -35,10 +35,10 @@ const profile = {
   wallets: [],
 };
 
-describe("admin profile adapters", () => {
+describe("profile adapters", () => {
   it("gets the profile using only the authenticated identity", async () => {
-    const adapter = makeGetAdminProfileAdapter({
-      getAdminProfile: {
+    const adapter = makeGetProfileAdapter({
+      getProfile: {
         execute: (input) => {
           assert.deepEqual(input, {
             userId,
@@ -56,9 +56,9 @@ describe("admin profile adapters", () => {
   });
 
   it("validates a partial update and uses the authenticated identity", async () => {
-    let receivedInput: UpdateAdminProfileInput | undefined;
-    const adapter = makeUpdateAdminProfileAdapter({
-      updateAdminProfile: {
+    let receivedInput: UpdateProfileInput | undefined;
+    const adapter = makeUpdateProfileAdapter({
+      updateProfile: {
         execute: (input) => {
           receivedInput = input;
           return Promise.resolve({ ...profile, displayName: input.displayName ?? null });
@@ -83,8 +83,8 @@ describe("admin profile adapters", () => {
   });
 
   it("rejects an empty update", async () => {
-    const adapter = makeUpdateAdminProfileAdapter({
-      updateAdminProfile: {
+    const adapter = makeUpdateProfileAdapter({
+      updateProfile: {
         execute: () => Promise.resolve(profile),
       },
     });
@@ -97,8 +97,8 @@ describe("admin profile adapters", () => {
   });
 
   it("rejects a URL that is not from YouTube", async () => {
-    const adapter = makeUpdateAdminProfileAdapter({
-      updateAdminProfile: {
+    const adapter = makeUpdateProfileAdapter({
+      updateProfile: {
         execute: () => Promise.resolve(profile),
       },
     });

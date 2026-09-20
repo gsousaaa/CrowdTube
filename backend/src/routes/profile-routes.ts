@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import type { AppContainer } from "../container";
 
-export function registerAdminRoutes(
+export function registerProfileRoutes(
   app: FastifyInstance,
   container: AppContainer,
 ): void {
@@ -11,7 +11,7 @@ export function registerAdminRoutes(
     {
       preHandler: container.authenticationGuard,
       schema: {
-        tags: ["Admin"],
+        tags: ["Profile"],
         summary: "Retorna o perfil do criador autenticado",
         security: [{ cookieAuth: [] }],
         response: {
@@ -20,7 +20,7 @@ export function registerAdminRoutes(
         },
       },
     },
-    container.controllers.admin.getProfile,
+    container.controllers.profile.get,
   );
 
   app.patch(
@@ -28,7 +28,7 @@ export function registerAdminRoutes(
     {
       preHandler: container.authenticationGuard,
       schema: {
-        tags: ["Admin"],
+        tags: ["Profile"],
         summary: "Atualiza o perfil do criador autenticado",
         description:
           "Atualiza somente os campos enviados. Envie null para limpar um campo.",
@@ -66,6 +66,6 @@ export function registerAdminRoutes(
         },
       },
     },
-    container.controllers.admin.updateProfile,
+    container.controllers.profile.update,
   );
 }

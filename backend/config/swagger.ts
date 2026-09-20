@@ -33,8 +33,8 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
           description: "Desafios e sessões baseados em assinatura de carteira.",
         },
         {
-          name: "Admin",
-          description: "Operações protegidas do painel do criador.",
+          name: "Profile",
+          description: "Consulta e atualização do perfil do criador.",
         },
         {
           name: "Media",

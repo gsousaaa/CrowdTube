@@ -9,7 +9,7 @@ import type { AppConfig } from "../config/env";
 import { makeSwaggerOptions, swaggerUiOptions } from "../config/swagger";
 import type { AppContainer } from "./container";
 import { AppError } from "./errors/app-error";
-import { registerAdminRoutes } from "./routes/admin-routes";
+import { registerProfileRoutes } from "./routes/profile-routes";
 import { registerAuthRoutes } from "./routes/auth-routes";
 import { registerCampaignRoutes } from "./routes/campaign-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
@@ -69,7 +69,7 @@ export async function makeApp(
   });
 
   registerAuthRoutes(app, container);
-  registerAdminRoutes(app, container);
+  registerProfileRoutes(app, container);
   registerCampaignRoutes(app, container);
   registerMediaRoutes(app, container);
   registerHealthRoutes(app, container);

@@ -5,8 +5,8 @@ import type {
   ControllerResponse,
 } from "../../controllers/controller-types";
 import { AppError } from "../../errors/app-error";
-import type { AdminProfile } from "../../usecases/admin/get-admin-profile-use-case";
-import type { UpdateAdminProfileUseCase } from "../../usecases/admin/update-admin-profile-use-case";
+import type { Profile } from "../../usecases/profile/get-profile-use-case";
+import type { UpdateProfileUseCase } from "../../usecases/profile/update-profile-use-case";
 
 const nullableTrimmedString = (maximumLength: number) =>
   z.string().trim().min(1).max(maximumLength).nullable().optional();
@@ -36,12 +36,12 @@ const requestBodySchema = z
     message: "At least one profile field is required.",
   });
 
-export function makeUpdateAdminProfileAdapter({
-  updateAdminProfile,
+export function makeUpdateProfileAdapter({
+  updateProfile,
 }: {
-  updateAdminProfile: Pick<UpdateAdminProfileUseCase, "execute">;
-}): ControllerAdapter<AdminProfile> {
-  return async (request): Promise<ControllerResponse<AdminProfile>> => {
+  updateProfile: Pick<UpdateProfileUseCase, "execute">;
+}): ControllerAdapter<Profile> {
+  return async (request): Promise<ControllerResponse<Profile>> => {
     if (!request.authenticatedUser) {
       throw new AppError(
         "A valid authentication session is required.",
@@ -62,7 +62,7 @@ export function makeUpdateAdminProfileAdapter({
 
     return {
       statusCode: 200,
-      body: await updateAdminProfile.execute({
+      body: await updateProfile.execute({
         userId: request.authenticatedUser.userId,
         authenticatedWalletAddress:
           request.authenticatedUser.walletAddress,
