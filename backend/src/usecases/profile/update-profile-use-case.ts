@@ -2,23 +2,23 @@ import type { UpdateUserProfileInput } from "../../entities/user";
 import { AppError } from "../../errors/app-error";
 import type { UserRepository } from "../../repository/user-repository";
 import type {
-  AdminProfile,
-  GetAdminProfileUseCase,
-} from "./get-admin-profile-use-case";
+  Profile,
+  GetProfileUseCase,
+} from "./get-profile-use-case";
 
-export type UpdateAdminProfileInput = UpdateUserProfileInput & {
+export type UpdateProfileInput = UpdateUserProfileInput & {
   userId: string;
   authenticatedWalletAddress: string;
 };
 
-export class UpdateAdminProfileUseCase {
+export class UpdateProfileUseCase {
   constructor(
     private readonly users: UserRepository,
-    private readonly getAdminProfile: GetAdminProfileUseCase,
+    private readonly getProfile: GetProfileUseCase,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async execute(input: UpdateAdminProfileInput): Promise<AdminProfile> {
+  async execute(input: UpdateProfileInput): Promise<Profile> {
     const { userId, authenticatedWalletAddress, ...profileFields } = input;
     const user = await this.users.findById(userId);
 
@@ -33,7 +33,7 @@ export class UpdateAdminProfileUseCase {
     user.updateProfile(profileFields, this.now());
     await this.users.save(user);
 
-    return this.getAdminProfile.execute({
+    return this.getProfile.execute({
       userId: user.id,
       authenticatedWalletAddress,
     });

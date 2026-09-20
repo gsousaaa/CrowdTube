@@ -4,9 +4,9 @@ import { S3MediaStorage } from "../common/lib/aws/s3/s3-media-storage";
 import { ViemWalletSignatureVerifier } from "../common/lib/viem/viem-wallet-signature-verifier";
 import { makeCreateMediaUploadUrlAdapter } from "./adapters/media/create-media-upload-url-adapter";
 import { makeGetMediaAdapter } from "./adapters/media/get-media-adapter";
-import { makeGetAdminProfileAdapter } from "./adapters/admin/get-admin-profile-adapter";
+import { makeGetProfileAdapter } from "./adapters/profile/get-profile-adapter";
 import { makeCheckHealthAdapter } from "./adapters/check-health-adapter";
-import { makeUpdateAdminProfileAdapter } from "./adapters/admin/update-admin-profile-adapter";
+import { makeUpdateProfileAdapter } from "./adapters/profile/update-profile-adapter";
 import { makeAuthenticationGuard } from "./adapters/auth/authentication-guard";
 import { makeCreateAuthChallengeAdapter } from "./adapters/auth/create-auth-challenge-adapter";
 import { makeGetCurrentUserAdapter } from "./adapters/auth/get-current-user-adapter";
@@ -37,8 +37,8 @@ import { CreateAuthChallengeUseCase } from "./usecases/auth/create-auth-challeng
 import { GetCurrentUserUseCase } from "./usecases/auth/get-current-user-use-case";
 import { LogoutUseCase } from "./usecases/auth/logout-use-case";
 import { VerifyAuthChallengeUseCase } from "./usecases/auth/verify-auth-challenge-use-case";
-import { GetAdminProfileUseCase } from "./usecases/admin/get-admin-profile-use-case";
-import { UpdateAdminProfileUseCase } from "./usecases/admin/update-admin-profile-use-case";
+import { GetProfileUseCase } from "./usecases/profile/get-profile-use-case";
+import { UpdateProfileUseCase } from "./usecases/profile/update-profile-use-case";
 import { CreateMediaUploadUrlUseCase } from "./usecases/media/create-media-upload-url-use-case";
 import { GetMediaUseCase } from "./usecases/media/get-media-use-case";
 import { CreateCampaignUseCase } from "./usecases/campaign/create-campaign-use-case";
@@ -74,7 +74,7 @@ export function makeContainer(config: AppConfig) {
     ),
   };
 
-  const getAdminProfile = new GetAdminProfileUseCase(
+  const getProfile = new GetProfileUseCase(
     repositories.users,
     repositories.userWallets,
   );
@@ -104,11 +104,11 @@ export function makeContainer(config: AppConfig) {
       ),
       logout: new LogoutUseCase(repositories.authSessions, sessionTokens),
     },
-    admin: {
-      getProfile: getAdminProfile,
-      updateProfile: new UpdateAdminProfileUseCase(
+    profile: {
+      get: getProfile,
+      update: new UpdateProfileUseCase(
         repositories.users,
-        getAdminProfile,
+        getProfile,
       ),
     },
     media: {
@@ -149,12 +149,12 @@ export function makeContainer(config: AppConfig) {
         config,
       }),
     },
-    admin: {
-      getProfile: makeGetAdminProfileAdapter({
-        getAdminProfile: useCases.admin.getProfile,
+    profile: {
+      get: makeGetProfileAdapter({
+        getProfile: useCases.profile.get,
       }),
-      updateProfile: makeUpdateAdminProfileAdapter({
-        updateAdminProfile: useCases.admin.updateProfile,
+      update: makeUpdateProfileAdapter({
+        updateProfile: useCases.profile.update,
       }),
     },
     media: {

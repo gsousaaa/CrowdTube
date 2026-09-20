@@ -2,7 +2,7 @@ import { AppError } from "../../errors/app-error";
 import type { UserRepository } from "../../repository/user-repository";
 import type { UserWalletRepository } from "../../repository/user-wallet-repository";
 
-export type AdminProfile = {
+export type Profile = {
   id: string;
   displayName: string | null;
   bio: string | null;
@@ -18,7 +18,7 @@ export type AdminProfile = {
   }>;
 };
 
-export class GetAdminProfileUseCase {
+export class GetProfileUseCase {
   constructor(
     private readonly users: UserRepository,
     private readonly userWallets: UserWalletRepository,
@@ -27,7 +27,7 @@ export class GetAdminProfileUseCase {
   async execute(input: {
     userId: string;
     authenticatedWalletAddress: string;
-  }): Promise<AdminProfile> {
+  }): Promise<Profile> {
     const user = await this.users.findById(input.userId);
 
     if (!user) {
