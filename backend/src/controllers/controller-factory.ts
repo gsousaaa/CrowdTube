@@ -18,6 +18,12 @@ type ControllerFactoryDependencies = {
       createUploadUrl: ControllerAdapter;
       get: ControllerAdapter;
     };
+    campaigns: {
+      create: ControllerAdapter;
+      getPublicById: ControllerAdapter;
+      listMine: ControllerAdapter;
+      searchPublic: ControllerAdapter;
+    };
   };
 };
 
@@ -54,6 +60,20 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       get: makeBaseController({
         adapter: adapters.media.get,
+      }),
+    },
+    campaigns: {
+      create: makeBaseController({
+        adapter: adapters.campaigns.create,
+      }),
+      getPublicById: makeBaseController({
+        adapter: adapters.campaigns.getPublicById,
+      }),
+      listMine: makeBaseController({
+        adapter: adapters.campaigns.listMine,
+      }),
+      searchPublic: makeBaseController({
+        adapter: adapters.campaigns.searchPublic,
       }),
     },
   };

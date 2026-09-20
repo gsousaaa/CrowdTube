@@ -52,4 +52,43 @@ export function registerSharedSchemas(app: FastifyInstance): void {
       },
     },
   });
+
+  app.addSchema({
+    $id: "campaignMetadata",
+    type: "object",
+    required: [
+      "id",
+      "creatorId",
+      "metadataId",
+      "chainId",
+      "contractAddress",
+      "onchainCampaignId",
+      "creationTransactionHash",
+      "title",
+      "category",
+      "description",
+      "youtubeUrl",
+      "imageObjectKey",
+      "status",
+      "createdAt",
+      "updatedAt",
+    ],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      creatorId: { type: "string", format: "uuid" },
+      metadataId: { type: "string", pattern: "^0x[a-fA-F0-9]{64}$" },
+      chainId: { type: ["integer", "null"] },
+      contractAddress: { type: ["string", "null"] },
+      onchainCampaignId: { type: ["string", "null"] },
+      creationTransactionHash: { type: ["string", "null"] },
+      title: { type: "string" },
+      category: { type: "string" },
+      description: { type: "string" },
+      youtubeUrl: { type: "string", format: "uri" },
+      imageObjectKey: { type: ["string", "null"] },
+      status: { type: "string" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+    },
+  });
 }

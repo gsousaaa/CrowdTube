@@ -54,6 +54,28 @@ it("protects private routes and clears the cookie on logout", async () => {
       method: "GET",
       url: "/uploads/media",
     });
+    const createCampaignResponse = await app.inject({
+      method: "POST",
+      url: "/admin/campaigns",
+      payload: {
+        title: "Open programming laboratory",
+        category: "education",
+        description: "Equipment for a new series of practical classes.",
+        youtubeUrl: "https://youtube.com/@creator",
+      },
+    });
+    const listCampaignsResponse = await app.inject({
+      method: "GET",
+      url: "/admin/campaigns",
+    });
+    const invalidPublicCampaignSearchResponse = await app.inject({
+      method: "GET",
+      url: "/campaigns?page=0",
+    });
+    const invalidPublicCampaignDetailsResponse = await app.inject({
+      method: "GET",
+      url: "/campaigns/not-a-uuid",
+    });
     const logoutResponse = await app.inject({
       method: "POST",
       url: "/auth/logout",
@@ -68,6 +90,10 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(createMediaResponse.statusCode, 401);
     assert.equal(createMediaResponse.json().error, "UNAUTHENTICATED");
     assert.equal(invalidPublicMediaResponse.statusCode, 400);
+    assert.equal(createCampaignResponse.statusCode, 401);
+    assert.equal(listCampaignsResponse.statusCode, 401);
+    assert.equal(invalidPublicCampaignSearchResponse.statusCode, 400);
+    assert.equal(invalidPublicCampaignDetailsResponse.statusCode, 400);
     assert.equal(logoutResponse.statusCode, 204);
     const setCookie = logoutResponse.headers["set-cookie"];
     assert.match(

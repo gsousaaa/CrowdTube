@@ -12,6 +12,10 @@ import { makeCreateAuthChallengeAdapter } from "./adapters/auth/create-auth-chal
 import { makeGetCurrentUserAdapter } from "./adapters/auth/get-current-user-adapter";
 import { makeLogoutAdapter } from "./adapters/auth/logout-adapter";
 import { makeVerifyAuthChallengeAdapter } from "./adapters/auth/verify-auth-challenge-adapter";
+import { makeCreateCampaignAdapter } from "./adapters/campaign/create-campaign-adapter";
+import { makeGetPublicCampaignByIdAdapter } from "./adapters/campaign/get-public-campaign-by-id-adapter";
+import { makeListCreatorCampaignsAdapter } from "./adapters/campaign/list-creator-campaigns-adapter";
+import { makeSearchPublicCampaignsAdapter } from "./adapters/campaign/search-public-campaigns-adapter";
 import { NodeSessionTokenManager } from "./adapters/security/node-session-token-manager";
 import { makeControllers } from "./controllers/controller-factory";
 import { TypeOrmDatabaseHealthGateway } from "./database/typeorm-database-health-gateway";
@@ -19,12 +23,14 @@ import { TypeOrmAuthUnitOfWork } from "./database/typeorm-auth-unit-of-work";
 import { makeTypeOrmDataSource } from "./database/typeorm-data-source";
 import { AuthNonce } from "./entities/auth-nonce";
 import { AuthSession } from "./entities/auth-session";
+import { Campaign } from "./entities/campaign";
 import { User } from "./entities/user";
 import { UserWallet } from "./entities/user-wallet";
 import { TypeOrmUserRepository } from "./repository/typeorm/typeorm-user-repository";
 import { TypeOrmUserWalletRepository } from "./repository/typeorm/typeorm-user-wallet-repository";
 import { TypeOrmAuthNonceRepository } from "./repository/typeorm/typeorm-auth-nonce-repository";
 import { TypeOrmAuthSessionRepository } from "./repository/typeorm/typeorm-auth-session-repository";
+import { TypeOrmCampaignRepository } from "./repository/typeorm/typeorm-campaign-repository";
 import { CheckHealthUseCase } from "./usecases/check-health-use-case";
 import { AuthenticateSessionUseCase } from "./usecases/auth/authenticate-session-use-case";
 import { CreateAuthChallengeUseCase } from "./usecases/auth/create-auth-challenge-use-case";
@@ -35,6 +41,10 @@ import { GetAdminProfileUseCase } from "./usecases/admin/get-admin-profile-use-c
 import { UpdateAdminProfileUseCase } from "./usecases/admin/update-admin-profile-use-case";
 import { CreateMediaUploadUrlUseCase } from "./usecases/media/create-media-upload-url-use-case";
 import { GetMediaUseCase } from "./usecases/media/get-media-use-case";
+import { CreateCampaignUseCase } from "./usecases/campaign/create-campaign-use-case";
+import { GetPublicCampaignByIdUseCase } from "./usecases/campaign/get-public-campaign-by-id-use-case";
+import { ListCreatorCampaignsUseCase } from "./usecases/campaign/list-creator-campaigns-use-case";
+import { SearchPublicCampaignsUseCase } from "./usecases/campaign/search-public-campaigns-use-case";
 
 export function makeContainer(config: AppConfig) {
   const dataSource = makeTypeOrmDataSource(config);
@@ -54,6 +64,9 @@ export function makeContainer(config: AppConfig) {
     ),
     authSessions: new TypeOrmAuthSessionRepository(
       dataSource.getRepository(AuthSession),
+    ),
+    campaigns: new TypeOrmCampaignRepository(
+      dataSource.getRepository(Campaign),
     ),
     users: new TypeOrmUserRepository(dataSource.getRepository(User)),
     userWallets: new TypeOrmUserWalletRepository(
@@ -108,6 +121,12 @@ export function makeContainer(config: AppConfig) {
         config.AWS_S3_READ_URL_TTL_SECONDS,
       ),
     },
+    campaigns: {
+      create: new CreateCampaignUseCase(repositories.campaigns),
+      getPublicById: new GetPublicCampaignByIdUseCase(repositories.campaigns),
+      listMine: new ListCreatorCampaignsUseCase(repositories.campaigns),
+      searchPublic: new SearchPublicCampaignsUseCase(repositories.campaigns),
+    },
   };
 
   const adapters = {
@@ -144,6 +163,20 @@ export function makeContainer(config: AppConfig) {
       }),
       get: makeGetMediaAdapter({
         getMedia: useCases.media.getMedia,
+      }),
+    },
+    campaigns: {
+      create: makeCreateCampaignAdapter({
+        createCampaign: useCases.campaigns.create,
+      }),
+      getPublicById: makeGetPublicCampaignByIdAdapter({
+        getPublicCampaignById: useCases.campaigns.getPublicById,
+      }),
+      listMine: makeListCreatorCampaignsAdapter({
+        listCreatorCampaigns: useCases.campaigns.listMine,
+      }),
+      searchPublic: makeSearchPublicCampaignsAdapter({
+        searchPublicCampaigns: useCases.campaigns.searchPublic,
       }),
     },
   };
