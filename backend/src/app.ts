@@ -11,6 +11,7 @@ import type { AppContainer } from "./container";
 import { AppError } from "./errors/app-error";
 import { registerAdminRoutes } from "./routes/admin-routes";
 import { registerAuthRoutes } from "./routes/auth-routes";
+import { registerCampaignRoutes } from "./routes/campaign-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
 import { registerMediaRoutes } from "./routes/media-routes";
 import { registerSharedSchemas } from "./routes/schemas";
@@ -69,6 +70,7 @@ export async function makeApp(
 
   registerAuthRoutes(app, container);
   registerAdminRoutes(app, container);
+  registerCampaignRoutes(app, container);
   registerMediaRoutes(app, container);
   registerHealthRoutes(app, container);
 

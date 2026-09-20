@@ -1,0 +1,116 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import { makeCreateCampaignAdapter } from "../../../src/adapters/campaign/create-campaign-adapter";
+import { makeGetPublicCampaignByIdAdapter } from "../../../src/adapters/campaign/get-public-campaign-by-id-adapter";
+import { makeListCreatorCampaignsAdapter } from "../../../src/adapters/campaign/list-creator-campaigns-adapter";
+import { makeSearchPublicCampaignsAdapter } from "../../../src/adapters/campaign/search-public-campaigns-adapter";
+import { Campaign } from "../../../src/entities/campaign";
+import { AppError } from "../../../src/errors/app-error";
+
+const userId = "c5b54171-8094-4235-a52b-7500633642d7";
+
+function makeRequest(body: unknown, authenticated = true) {
+  return {
+    body,
+    params: {},
+    query: {},
+    headers: {},
+    cookies: {},
+    authenticatedUser: authenticated
+      ? {
+          sessionId: "session-id",
+          userId,
+          walletId: "wallet-id",
+          walletAddress: "0x0000000000000000000000000000000000000001",
+        }
+      : null,
+  };
+}
+
+describe("campaign adapters", () => {
+  it("creates metadata for the authenticated user", async () => {
+    const adapter = makeCreateCampaignAdapter({
+      createCampaign: {
+        execute: (input) => {
+          assert.equal(input.creatorId, userId);
+          return Promise.resolve(Campaign.create(input));
+        },
+      },
+    });
+
+    const response = await adapter(
+      makeRequest({
+        title: "Open programming laboratory",
+        category: "education",
+        description: "Equipment for a new series of practical classes.",
+        youtubeUrl: "https://youtube.com/@creator",
+      }),
+    );
+
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.creatorId, userId);
+  });
+
+  it("requires authentication when listing creator campaigns", async () => {
+    const adapter = makeListCreatorCampaignsAdapter({
+      listCreatorCampaigns: { execute: () => Promise.resolve([]) },
+    });
+
+    await assert.rejects(
+      adapter(makeRequest(undefined, false)),
+      (error: unknown) =>
+        error instanceof AppError && error.code === "UNAUTHENTICATED",
+    );
+  });
+
+  it("allows visitors to search published campaigns", async () => {
+    const adapter = makeSearchPublicCampaignsAdapter({
+      searchPublicCampaigns: {
+        execute: (input) => {
+          assert.deepEqual(input, {
+            search: "web3",
+            page: 2,
+            pageSize: 6,
+          });
+          return Promise.resolve({
+            campaigns: [],
+            pagination: { page: 2, pageSize: 6, total: 0, totalPages: 0 },
+          });
+        },
+      },
+    });
+    const request = makeRequest(undefined, false);
+    request.query = { search: "web3", page: "2", pageSize: "6" };
+
+    const response = await adapter(request);
+
+    assert.equal(response.statusCode, 200);
+  });
+
+  it("allows visitors to open a published campaign by id", async () => {
+    const campaign = Campaign.create({
+      creatorId: userId,
+      title: "Open programming laboratory",
+      category: "education",
+      description: "Equipment for a new series of practical classes.",
+      youtubeUrl: "https://youtube.com/@creator",
+    });
+    campaign.status = "published";
+    const adapter = makeGetPublicCampaignByIdAdapter({
+      getPublicCampaignById: {
+        execute: (campaignId) => {
+          assert.equal(campaignId, campaign.id);
+          return Promise.resolve(campaign);
+        },
+      },
+    });
+    const request = makeRequest(undefined, false);
+    request.params = { campaignId: campaign.id };
+
+    const response = await adapter(request);
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body, campaign);
+  });
+});
