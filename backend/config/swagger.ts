@@ -41,6 +41,10 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
           description: "Leitura pública de imagens de perfis e campanhas.",
         },
         {
+          name: "Campaigns",
+          description: "Metadados offchain e associação onchain de campanhas.",
+        },
+        {
           name: "Health",
           description: "Estado da aplicação e de suas dependências.",
         },

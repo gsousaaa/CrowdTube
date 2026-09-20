@@ -5,10 +5,12 @@ import type { AppConfig } from "../../config/env";
 import { CreateAuthSessions1789720000000 } from "./migrations/1789720000000-CreateAuthSessions";
 import { CreateUsersAndUserWallets1770000000000 } from "./migrations/1770000000000-create-users-and-user-wallets";
 import { CreateAuthNonces1789644794085 } from "./migrations/1789644794085-CreateAuthNonces";
+import { CreateCampaigns1790000000000 } from "./migrations/1790000000000-CreateCampaigns";
 import { AuthSessionSchema } from "./typeorm/entities/auth-session-schema";
 import { AuthNonceSchema } from "./typeorm/entities/auth-nonce-schema";
 import { UserSchema } from "./typeorm/entities/user-schema";
 import { UserWalletSchema } from "./typeorm/entities/user-wallet-schema";
+import { CampaignSchema } from "./typeorm/entities/campaign-schema";
 
 export function makeTypeOrmDataSource(config: AppConfig): DataSource {
   return new DataSource({
@@ -18,11 +20,18 @@ export function makeTypeOrmDataSource(config: AppConfig): DataSource {
     username: config.DB_USER,
     password: config.DB_PASSWORD,
     database: config.DB_NAME,
-    entities: [AuthNonceSchema, AuthSessionSchema, UserSchema, UserWalletSchema],
+    entities: [
+      AuthNonceSchema,
+      AuthSessionSchema,
+      CampaignSchema,
+      UserSchema,
+      UserWalletSchema,
+    ],
     migrations: [
       CreateUsersAndUserWallets1770000000000,
       CreateAuthNonces1789644794085,
       CreateAuthSessions1789720000000,
+      CreateCampaigns1790000000000,
     ],
     synchronize: false,
     logging: config.NODE_ENV === "dev" ? ["error", "warn"] : false,
