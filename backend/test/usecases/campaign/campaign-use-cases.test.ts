@@ -16,6 +16,12 @@ class InMemoryCampaignRepository implements CampaignRepository {
     return Promise.resolve(this.items.find((item) => item.id === id) ?? null);
   }
 
+  findByMetadataId(metadataId: string): Promise<Campaign | null> {
+    return Promise.resolve(
+      this.items.find((item) => item.metadataId === metadataId) ?? null,
+    );
+  }
+
   findByCreatorId(creatorId: string): Promise<Campaign[]> {
     return Promise.resolve(
       this.items.filter((item) => item.creatorId === creatorId),

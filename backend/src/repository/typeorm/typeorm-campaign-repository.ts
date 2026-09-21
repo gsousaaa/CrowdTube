@@ -16,6 +16,10 @@ export class TypeOrmCampaignRepository
     return this.repository.findOneBy({ id });
   }
 
+  findByMetadataId(metadataId: string): Promise<Campaign | null> {
+    return this.repository.findOneBy({ metadataId });
+  }
+
   findByCreatorId(creatorId: string): Promise<Campaign[]> {
     return this.repository.find({
       where: { creatorId },
