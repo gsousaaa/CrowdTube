@@ -16,7 +16,7 @@ import { makeCreateCampaignAdapter } from "./adapters/campaign/create-campaign-a
 import { makeGetPublicCampaignByIdAdapter } from "./adapters/campaign/get-public-campaign-by-id-adapter";
 import { makeListCreatorCampaignsAdapter } from "./adapters/campaign/list-creator-campaigns-adapter";
 import { makeSearchPublicCampaignsAdapter } from "./adapters/campaign/search-public-campaigns-adapter";
-import { NodeSessionTokenManager } from "./adapters/security/node-session-token-manager";
+import { NodeSessionTokenManager } from "../common/lib/crypto/node-session-token-manager";
 import { makeControllers } from "./controllers/controller-factory";
 import { TypeOrmDatabaseHealthGateway } from "./database/typeorm-database-health-gateway";
 import { TypeOrmAuthUnitOfWork } from "./database/typeorm-auth-unit-of-work";
