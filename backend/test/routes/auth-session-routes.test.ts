@@ -25,6 +25,8 @@ const config: AppConfig = {
   AWS_S3_BUCKET_NAME: "crowdtube-test",
   AWS_S3_UPLOAD_URL_TTL_SECONDS: 300,
   AWS_S3_READ_URL_TTL_SECONDS: 300,
+  CAMPAIGN_CONFIRMATIONS: 1,
+  CAMPAIGN_INDEXER_POLL_MS: 10_000,
 };
 
 it("protects private routes and clears the cookie on logout", async () => {
