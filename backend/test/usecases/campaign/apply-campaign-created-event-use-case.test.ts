@@ -89,6 +89,33 @@ describe("ApplyCampaignCreatedEventUseCase", () => {
     assert.equal(getSaveCount(), 0);
   });
 
+  it("does not publish a pending campaign from a different transaction", async () => {
+    const { campaign, event, useCase, getSaveCount } = makeScenario();
+    campaign.status = "pending_onchain";
+    campaign.chainId = event.chainId;
+    campaign.contractAddress = event.contractAddress;
+    campaign.creationTransactionHash = `0x${"b".repeat(64)}`;
+
+    const result = await useCase.execute(event);
+
+    assert.equal(result.status, "conflict");
+    assert.equal(campaign.status, "pending_onchain");
+    assert.equal(getSaveCount(), 0);
+  });
+
+  it("publishes a pending campaign when the event matches the submitted transaction", async () => {
+    const { campaign, event, useCase } = makeScenario();
+    campaign.status = "pending_onchain";
+    campaign.chainId = event.chainId;
+    campaign.contractAddress = event.contractAddress;
+    campaign.creationTransactionHash = event.transactionHash;
+
+    const result = await useCase.execute(event);
+
+    assert.equal(result.status, "published");
+    assert.equal(campaign.onchainCampaignId, event.campaignId);
+  });
+
   it("ignores an event without a matching metadata identifier", async () => {
     const { campaign, event, useCase } = makeScenario();
 

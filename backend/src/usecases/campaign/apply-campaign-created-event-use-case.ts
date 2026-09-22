@@ -56,6 +56,15 @@ export class ApplyCampaignCreatedEventUseCase {
       return { status: "conflict" };
     }
 
+    if (
+      campaign.status === "pending_onchain" &&
+      (campaign.chainId !== event.chainId ||
+        campaign.contractAddress !== contractAddress ||
+        campaign.creationTransactionHash !== transactionHash)
+    ) {
+      return { status: "conflict" };
+    }
+
     campaign.chainId = event.chainId;
     campaign.contractAddress = contractAddress;
     campaign.onchainCampaignId = event.campaignId;
