@@ -9,12 +9,18 @@ import {
 } from "thirdweb";
 import {
   useActiveAccount,
+  useActiveWalletChain,
   useSendTransaction,
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
-import { saveMockCampaignMetadata } from "@/lib/campaigns/mock-campaign-storage";
+import { useAdminWalletAuth } from "@/components/wallet/admin-wallet-auth-provider";
+import { createCampaignDraft, recordCampaignCreationTransaction, type CampaignCategory } from "@/lib/api/campaigns";
+import { ApiError } from "@/lib/api/client";
+import { notifyCampaignsUpdated } from "@/lib/api/events";
+import { uploadCampaignImage } from "@/lib/api/media";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
+import { crowdTubeChain } from "@/lib/web3/network";
 
 const campaignCreatedEvent = prepareEvent({
   signature:
@@ -23,15 +29,12 @@ const campaignCreatedEvent = prepareEvent({
 
 type CreationStatus =
   | "idle"
+  | "uploading-image"
+  | "saving-draft"
   | "awaiting-signature"
   | "sent"
   | "confirmed"
   | "error";
-
-function createMockMetadataId() {
-  const uuidAsHex = crypto.randomUUID().replaceAll("-", "");
-  return `0x${uuidAsHex.padEnd(64, "0")}` as `0x${string}`;
-}
 
 function parseDeadline(input: string) {
   if (!input) return 0n;
@@ -47,17 +50,22 @@ function parseDeadline(input: string) {
 
 export function CreateCampaignModal() {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [imageSource, setImageSource] = useState<"upload" | "url">("upload");
   const [creationStatus, setCreationStatus] = useState<CreationStatus>("idle");
   const [error, setError] = useState<string>();
   const [createdCampaignId, setCreatedCampaignId] = useState<string>();
+  const [transactionHash, setTransactionHash] = useState<string>();
+  const [registrationWarning, setRegistrationWarning] = useState<string>();
   const account = useActiveAccount();
+  const adminAuth = useAdminWalletAuth();
+  const activeChain = useActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
 
   function openModal() {
     setCreationStatus("idle");
     setError(undefined);
     setCreatedCampaignId(undefined);
+    setTransactionHash(undefined);
+    setRegistrationWarning(undefined);
     dialogRef.current?.showModal();
   }
 
@@ -75,17 +83,27 @@ export function CreateCampaignModal() {
     event.preventDefault();
     setError(undefined);
     setCreatedCampaignId(undefined);
+    setTransactionHash(undefined);
+    setRegistrationWarning(undefined);
+
+    const form = event.currentTarget;
+    let draftId: string | undefined;
+    let submittedHash: string | undefined;
 
     try {
       if (!account) {
         throw new Error("Conecte sua carteira antes de criar a campanha.");
       }
+      if (adminAuth.status !== "ready") {
+        throw new Error("Autentique sua carteira pelo botão no topo antes de criar a campanha.");
+      }
+      if (activeChain?.id !== crowdTubeChain.id) {
+        throw new Error(`Selecione a rede ${crowdTubeChain.name} na carteira antes de continuar.`);
+      }
 
-      const form = event.currentTarget;
       const formData = new FormData(form);
       const goalEth = String(formData.get("goal") ?? "");
       const deadlineInput = String(formData.get("deadline") ?? "");
-      const metadataId = createMockMetadataId();
       const goal = toWei(goalEth);
       const deadline = parseDeadline(deadlineInput);
 
@@ -93,15 +111,48 @@ export function CreateCampaignModal() {
         throw new Error("A meta deve ser maior que zero.");
       }
 
+      const coverImage = formData.get("coverImage");
+      let imageObjectKey: string | null = null;
+      if (coverImage instanceof File && coverImage.size > 0) {
+        setCreationStatus("uploading-image");
+        imageObjectKey = await uploadCampaignImage(coverImage);
+      }
+
+      setCreationStatus("saving-draft");
+      const draft = await createCampaignDraft({
+        title: String(formData.get("title") ?? ""),
+        category: String(formData.get("category") ?? "") as CampaignCategory,
+        description: String(formData.get("description") ?? ""),
+        youtubeUrl: String(formData.get("youtubeUrl") ?? ""),
+        imageObjectKey,
+      });
+      draftId = draft.id;
+      notifyCampaignsUpdated();
+
       const transaction = prepareContractCall({
         contract: crowdTubeCampaignsContract,
         method: "createCampaign",
-        params: [metadataId, goal, deadline],
+        params: [draft.metadataId, goal, deadline],
       });
 
       setCreationStatus("awaiting-signature");
       const sentTransaction = await sendTransaction.mutateAsync(transaction);
+      submittedHash = sentTransaction.transactionHash;
+      setTransactionHash(submittedHash);
       setCreationStatus("sent");
+
+      try {
+        await recordCampaignCreationTransaction(draft.id, {
+          chainId: crowdTubeChain.id,
+          contractAddress: crowdTubeCampaignsContract.address,
+          transactionHash: submittedHash,
+        });
+      } catch {
+        // The indexer can still associate a draft by metadataId. Never ask the
+        // user to send a second transaction merely because this API call failed.
+        setRegistrationWarning("A transação foi enviada, mas o hash não pôde ser registrado na API. Não envie outra transação; o indexador ainda poderá localizar a campanha.");
+      }
+      notifyCampaignsUpdated();
 
       const receipt = await waitForReceipt(sentTransaction);
       const [createdEvent] = parseEventLogs({
@@ -112,43 +163,34 @@ export function CreateCampaignModal() {
       if (!createdEvent) {
         throw new Error("A transação confirmou, mas o evento de criação não foi encontrado.");
       }
+      if (createdEvent.args.metadataId.toLowerCase() !== draft.metadataId.toLowerCase()) {
+        throw new Error("O evento confirmado não corresponde ao rascunho criado no backend.");
+      }
 
-      const campaignId = createdEvent.args.campaignId.toString();
-      const coverImage = formData.get("coverImage");
-      const imageReference =
-        imageSource === "url"
-          ? String(formData.get("coverImageUrl") ?? "")
-          : coverImage instanceof File
-            ? coverImage.name
-            : "";
-
-      saveMockCampaignMetadata({
-        campaignId,
-        metadataId,
-        title: String(formData.get("title") ?? ""),
-        category: String(formData.get("category") ?? ""),
-        description: String(formData.get("description") ?? ""),
-        youtubeUrl: String(formData.get("youtubeUrl") ?? ""),
-        imageReference,
-        goalEth,
-        deadline: deadlineInput || null,
-        creationTransactionHash: sentTransaction.transactionHash,
-      });
-
-      setCreatedCampaignId(campaignId);
+      setCreatedCampaignId(draft.id);
       setCreationStatus("confirmed");
+      notifyCampaignsUpdated();
       form.reset();
     } catch (creationError) {
+      if (creationError instanceof ApiError && creationError.status === 401) {
+        adminAuth.markSessionExpired();
+      }
       setCreationStatus("error");
-      setError(
-        creationError instanceof Error
-          ? creationError.message
-          : "Não foi possível criar a campanha.",
-      );
+      const message = creationError instanceof Error
+        ? creationError.message
+        : "Não foi possível criar a campanha.";
+      setError(submittedHash
+        ? `A transação ${submittedHash} foi enviada, mas houve uma falha ao acompanhar sua confirmação: ${message} Não envie outra transação antes de verificar a campanha.`
+        : draftId
+          ? `O rascunho ${draftId} foi salvo, mas a transação não foi enviada: ${message}`
+          : message);
+      notifyCampaignsUpdated();
     }
   }
 
   const isProcessing =
+    creationStatus === "uploading-image" ||
+    creationStatus === "saving-draft" ||
     creationStatus === "awaiting-signature" ||
     creationStatus === "sent";
 
@@ -182,8 +224,8 @@ export function CreateCampaignModal() {
               id="create-campaign-description"
               className="mt-2 max-w-xl text-sm leading-6 text-zinc-400"
             >
-              Os dados financeiros serão registrados no contrato. Nesta etapa,
-              os dados de apresentação serão armazenados apenas neste navegador.
+              A apresentação será salva no backend. Meta, prazo e doações serão
+              registrados no contrato após a assinatura da carteira.
             </p>
           </div>
 
@@ -275,76 +317,21 @@ export function CreateCampaignModal() {
               </label>
 
               <fieldset className="space-y-4 rounded-2xl border border-white/10 p-4">
-              <legend className="px-2 text-sm text-zinc-300">Imagem de capa</legend>
-
-              <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.04] p-1">
-                <label
-                  className={`cursor-pointer rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
-                    imageSource === "upload"
-                      ? "bg-emerald-300 text-zinc-950"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="imageSource"
-                    value="upload"
-                    checked={imageSource === "upload"}
-                    onChange={() => setImageSource("upload")}
-                    className="sr-only"
-                  />
-                  Enviar arquivo
-                </label>
-
-                <label
-                  className={`cursor-pointer rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
-                    imageSource === "url"
-                      ? "bg-emerald-300 text-zinc-950"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="imageSource"
-                    value="url"
-                    checked={imageSource === "url"}
-                    onChange={() => setImageSource("url")}
-                    className="sr-only"
-                  />
-                  Usar link
-                </label>
-              </div>
-
-              {imageSource === "upload" ? (
+                <legend className="px-2 text-sm text-zinc-300">Imagem de capa</legend>
+                <p className="text-xs text-zinc-500">O envio por link ainda não é aceito pelo backend.</p>
                 <label className="block space-y-2 text-sm text-zinc-300">
-                  <span>Selecione uma imagem</span>
+                  <span>Selecione uma imagem (opcional)</span>
                   <input
                     name="coverImage"
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    required
                     className="block w-full cursor-pointer rounded-xl border border-dashed border-white/20 bg-white/[0.04] p-3 text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-300 file:px-4 file:py-2 file:font-medium file:text-zinc-950 hover:border-emerald-300/40"
                   />
                   <span className="block text-xs leading-5 text-zinc-500">
-                    JPG, PNG ou WebP. O backend validará o arquivo e fará o upload
-                    para o bucket S3.
+                    JPG, PNG ou WebP. O navegador envia o arquivo diretamente ao S3
+                    com uma URL temporária fornecida pela API.
                   </span>
                 </label>
-              ) : (
-                <label className="block space-y-2 text-sm text-zinc-300">
-                  <span>URL pública da imagem</span>
-                  <input
-                    name="coverImageUrl"
-                    type="url"
-                    required
-                    placeholder="https://exemplo.com/capa.webp"
-                    className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
-                  />
-                  <span className="block text-xs leading-5 text-zinc-500">
-                    O backend deverá baixar, validar e armazenar uma cópia no S3.
-                  </span>
-                </label>
-              )}
               </fieldset>
             </div>
           </fieldset>
@@ -391,9 +378,16 @@ export function CreateCampaignModal() {
               role="status"
               className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-100"
             >
-              Campanha #{createdCampaignId} criada na blockchain. Os dados de
-              apresentação foram salvos localmente como mock.
+              Transação confirmada. O indexador publicará a campanha após as
+              confirmações configuradas. Acompanhe o status no painel.
             </div>
+          )}
+
+          {registrationWarning && (
+            <p role="status" className="text-sm text-amber-200">{registrationWarning}</p>
+          )}
+          {transactionHash && creationStatus === "sent" && (
+            <p className="break-all text-xs text-zinc-400">Transação enviada: {transactionHash}</p>
           )}
 
           {error && (
@@ -418,6 +412,8 @@ export function CreateCampaignModal() {
               disabled={isProcessing}
               className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             >
+              {creationStatus === "uploading-image" && "Enviando imagem..."}
+              {creationStatus === "saving-draft" && "Salvando rascunho..."}
               {creationStatus === "awaiting-signature" && "Confirme na carteira..."}
               {creationStatus === "sent" && "Aguardando confirmação..."}
               {(creationStatus === "idle" ||
