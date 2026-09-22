@@ -27,6 +27,7 @@ function makeScenario() {
   const campaigns: CampaignRepository = {
     findById: (id) => Promise.resolve(id === campaign.id ? campaign : null),
     findByMetadataId: (id) => Promise.resolve(id === campaign.metadataId ? campaign : null),
+    markPendingOnchain: () => Promise.resolve(false),
     findByCreatorId: () => Promise.resolve([campaign]),
     searchPublished: () => Promise.resolve({ campaigns: [], total: 0 }),
     save: (value) => {

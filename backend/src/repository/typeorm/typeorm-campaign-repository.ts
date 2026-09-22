@@ -20,6 +20,27 @@ export class TypeOrmCampaignRepository
     return this.repository.findOneBy({ metadataId });
   }
 
+  async markPendingOnchain(input: {
+    campaignId: string;
+    creatorId: string;
+    chainId: number;
+    contractAddress: string;
+    transactionHash: string;
+  }): Promise<boolean> {
+    const result = await this.repository.update(
+      { id: input.campaignId, creatorId: input.creatorId, status: "draft" },
+      {
+        chainId: input.chainId,
+        contractAddress: input.contractAddress,
+        creationTransactionHash: input.transactionHash,
+        status: "pending_onchain",
+        updatedAt: new Date(),
+      },
+    );
+
+    return result.affected === 1;
+  }
+
   findByCreatorId(creatorId: string): Promise<Campaign[]> {
     return this.repository.find({
       where: { creatorId },

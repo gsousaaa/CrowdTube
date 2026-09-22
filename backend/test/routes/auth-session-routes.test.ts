@@ -66,6 +66,15 @@ it("protects private routes and clears the cookie on logout", async () => {
         youtubeUrl: "https://youtube.com/@creator",
       },
     });
+    const recordCreationTransactionResponse = await app.inject({
+      method: "POST",
+      url: "/admin/campaigns/c5b54171-8094-4235-a52b-7500633642d7/creation-transaction",
+      payload: {
+        chainId: 31_337,
+        contractAddress: `0x${"a".repeat(40)}`,
+        transactionHash: `0x${"b".repeat(64)}`,
+      },
+    });
     const listCampaignsResponse = await app.inject({
       method: "GET",
       url: "/admin/campaigns",
@@ -93,6 +102,7 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(createMediaResponse.json().error, "UNAUTHENTICATED");
     assert.equal(invalidPublicMediaResponse.statusCode, 400);
     assert.equal(createCampaignResponse.statusCode, 401);
+    assert.equal(recordCreationTransactionResponse.statusCode, 401);
     assert.equal(listCampaignsResponse.statusCode, 401);
     assert.equal(invalidPublicCampaignSearchResponse.statusCode, 400);
     assert.equal(invalidPublicCampaignDetailsResponse.statusCode, 400);

@@ -4,6 +4,13 @@ import type { EntityRepository } from "./entity-repository";
 export interface CampaignRepository
   extends EntityRepository<Campaign, string> {
   findByMetadataId(metadataId: string): Promise<Campaign | null>;
+  markPendingOnchain(input: {
+    campaignId: string;
+    creatorId: string;
+    chainId: number;
+    contractAddress: string;
+    transactionHash: string;
+  }): Promise<boolean>;
   findByCreatorId(creatorId: string): Promise<Campaign[]>;
   searchPublished(input: {
     search: string;
