@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { NodeSessionTokenManager } from "../../../src/adapters/security/node-session-token-manager";
+import { NodeSessionTokenManager } from "../../../common/lib/crypto/node-session-token-manager";
 
 describe("NodeSessionTokenManager", () => {
   it("creates a random token and stores only its deterministic hash", () => {

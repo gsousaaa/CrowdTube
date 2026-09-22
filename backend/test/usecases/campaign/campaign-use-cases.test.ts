@@ -16,6 +16,35 @@ class InMemoryCampaignRepository implements CampaignRepository {
     return Promise.resolve(this.items.find((item) => item.id === id) ?? null);
   }
 
+  findByMetadataId(metadataId: string): Promise<Campaign | null> {
+    return Promise.resolve(
+      this.items.find((item) => item.metadataId === metadataId) ?? null,
+    );
+  }
+
+  markPendingOnchain(input: {
+    campaignId: string;
+    creatorId: string;
+    chainId: number;
+    contractAddress: string;
+    transactionHash: string;
+  }): Promise<boolean> {
+    const campaign = this.items.find(
+      (item) =>
+        item.id === input.campaignId &&
+        item.creatorId === input.creatorId &&
+        item.status === "draft",
+    );
+    if (!campaign) return Promise.resolve(false);
+
+    campaign.chainId = input.chainId;
+    campaign.contractAddress = input.contractAddress;
+    campaign.creationTransactionHash = input.transactionHash;
+    campaign.status = "pending_onchain";
+    campaign.updatedAt = new Date();
+    return Promise.resolve(true);
+  }
+
   findByCreatorId(creatorId: string): Promise<Campaign[]> {
     return Promise.resolve(
       this.items.filter((item) => item.creatorId === creatorId),

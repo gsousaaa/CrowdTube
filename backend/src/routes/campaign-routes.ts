@@ -123,6 +123,47 @@ export function registerCampaignRoutes(
     container.controllers.campaigns.create,
   );
 
+  app.post(
+    "/admin/campaigns/:campaignId/creation-transaction",
+    {
+      preHandler: container.authenticationGuard,
+      schema: {
+        tags: ["Campaigns"],
+        summary: "Registra o hash da transação de criação de campanha",
+        description:
+          "Recebe a referência enviada pela carteira e marca o rascunho como pending_onchain. O indexador confirma os dados pela blockchain antes de publicar a campanha.",
+        security: [{ cookieAuth: [] }],
+        params: {
+          type: "object",
+          additionalProperties: false,
+          required: ["campaignId"],
+          properties: {
+            campaignId: { type: "string", format: "uuid" },
+          },
+        },
+        body: {
+          type: "object",
+          additionalProperties: false,
+          required: ["chainId", "contractAddress", "transactionHash"],
+          properties: {
+            chainId: { type: "integer", minimum: 1 },
+            contractAddress: { type: "string", pattern: "^0x[a-fA-F0-9]{40}$" },
+            transactionHash: { type: "string", pattern: "^0x[a-fA-F0-9]{64}$" },
+          },
+        },
+        response: {
+          200: campaignResponse,
+          202: campaignResponse,
+          400: { $ref: "errorResponse#" },
+          401: { $ref: "errorResponse#" },
+          404: { $ref: "errorResponse#" },
+          409: { $ref: "errorResponse#" },
+        },
+      },
+    },
+    container.controllers.campaigns.recordCreationTransaction,
+  );
+
   app.get(
     "/admin/campaigns",
     {

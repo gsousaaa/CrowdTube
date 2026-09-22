@@ -5,6 +5,7 @@ import { makeCreateCampaignAdapter } from "../../../src/adapters/campaign/create
 import { makeGetPublicCampaignByIdAdapter } from "../../../src/adapters/campaign/get-public-campaign-by-id-adapter";
 import { makeListCreatorCampaignsAdapter } from "../../../src/adapters/campaign/list-creator-campaigns-adapter";
 import { makeSearchPublicCampaignsAdapter } from "../../../src/adapters/campaign/search-public-campaigns-adapter";
+import { makeRecordCampaignCreationTransactionAdapter } from "../../../src/adapters/campaign/record-campaign-creation-transaction-adapter";
 import { Campaign } from "../../../src/entities/campaign";
 import { AppError } from "../../../src/errors/app-error";
 
@@ -50,6 +51,66 @@ describe("campaign adapters", () => {
 
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.creatorId, userId);
+  });
+
+  it("accepts a transaction hash only from an authenticated creator", async () => {
+    const campaign = Campaign.create({
+      creatorId: userId,
+      title: "Open programming laboratory",
+      category: "education",
+      description: "Equipment for a new series of practical classes.",
+      youtubeUrl: "https://youtube.com/@creator",
+    });
+    campaign.status = "pending_onchain";
+    const adapter = makeRecordCampaignCreationTransactionAdapter({
+      recordCampaignCreationTransaction: {
+        execute: (input) => {
+          assert.deepEqual(input, {
+            campaignId: campaign.id,
+            creatorId: userId,
+            chainId: 31_337,
+            contractAddress: `0x${"a".repeat(40)}`,
+            transactionHash: `0x${"b".repeat(64)}`,
+          });
+          return Promise.resolve(campaign);
+        },
+      },
+    });
+    const request = makeRequest({
+      chainId: 31_337,
+      contractAddress: `0x${"a".repeat(40)}`,
+      transactionHash: `0x${"b".repeat(64)}`,
+    });
+    request.params = { campaignId: campaign.id };
+
+    const response = await adapter(request);
+
+    assert.equal(response.statusCode, 202);
+    assert.equal(response.body, campaign);
+    await assert.rejects(
+      adapter({ ...request, authenticatedUser: null }),
+      (error: unknown) => error instanceof AppError && error.code === "UNAUTHENTICATED",
+    );
+  });
+
+  it("rejects malformed transaction hashes", async () => {
+    const adapter = makeRecordCampaignCreationTransactionAdapter({
+      recordCampaignCreationTransaction: {
+        execute: () => { throw new Error("Should not be called"); },
+      },
+    });
+    const request = makeRequest({
+      chainId: 31_337,
+      contractAddress: `0x${"a".repeat(40)}`,
+      transactionHash: "0x1234",
+    });
+    request.params = { campaignId: "c5b54171-8094-4235-a52b-7500633642d7" };
+
+    await assert.rejects(
+      adapter(request),
+      (error: unknown) =>
+        error instanceof AppError && error.code === "INVALID_CAMPAIGN_CREATION_TRANSACTION",
+    );
   });
 
   it("requires authentication when listing creator campaigns", async () => {

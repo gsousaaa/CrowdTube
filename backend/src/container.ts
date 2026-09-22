@@ -16,7 +16,8 @@ import { makeCreateCampaignAdapter } from "./adapters/campaign/create-campaign-a
 import { makeGetPublicCampaignByIdAdapter } from "./adapters/campaign/get-public-campaign-by-id-adapter";
 import { makeListCreatorCampaignsAdapter } from "./adapters/campaign/list-creator-campaigns-adapter";
 import { makeSearchPublicCampaignsAdapter } from "./adapters/campaign/search-public-campaigns-adapter";
-import { NodeSessionTokenManager } from "./adapters/security/node-session-token-manager";
+import { makeRecordCampaignCreationTransactionAdapter } from "./adapters/campaign/record-campaign-creation-transaction-adapter";
+import { NodeSessionTokenManager } from "../common/lib/crypto/node-session-token-manager";
 import { makeControllers } from "./controllers/controller-factory";
 import { TypeOrmDatabaseHealthGateway } from "./database/typeorm-database-health-gateway";
 import { TypeOrmAuthUnitOfWork } from "./database/typeorm-auth-unit-of-work";
@@ -45,6 +46,7 @@ import { CreateCampaignUseCase } from "./usecases/campaign/create-campaign-use-c
 import { GetPublicCampaignByIdUseCase } from "./usecases/campaign/get-public-campaign-by-id-use-case";
 import { ListCreatorCampaignsUseCase } from "./usecases/campaign/list-creator-campaigns-use-case";
 import { SearchPublicCampaignsUseCase } from "./usecases/campaign/search-public-campaigns-use-case";
+import { RecordCampaignCreationTransactionUseCase } from "./usecases/campaign/record-campaign-creation-transaction-use-case";
 
 export function makeContainer(config: AppConfig) {
   const dataSource = makeTypeOrmDataSource(config);
@@ -123,6 +125,7 @@ export function makeContainer(config: AppConfig) {
     },
     campaigns: {
       create: new CreateCampaignUseCase(repositories.campaigns),
+      recordCreationTransaction: new RecordCampaignCreationTransactionUseCase(repositories.campaigns),
       getPublicById: new GetPublicCampaignByIdUseCase(repositories.campaigns),
       listMine: new ListCreatorCampaignsUseCase(repositories.campaigns),
       searchPublic: new SearchPublicCampaignsUseCase(repositories.campaigns),
@@ -168,6 +171,9 @@ export function makeContainer(config: AppConfig) {
     campaigns: {
       create: makeCreateCampaignAdapter({
         createCampaign: useCases.campaigns.create,
+      }),
+      recordCreationTransaction: makeRecordCampaignCreationTransactionAdapter({
+        recordCampaignCreationTransaction: useCases.campaigns.recordCreationTransaction,
       }),
       getPublicById: makeGetPublicCampaignByIdAdapter({
         getPublicCampaignById: useCases.campaigns.getPublicById,
