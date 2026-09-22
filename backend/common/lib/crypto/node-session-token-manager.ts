@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type {
   SessionToken,
   SessionTokenManager,
-} from "../../usecases/auth/session-token-manager";
+} from "../../../src/usecases/auth/session-token-manager";
 
 export class NodeSessionTokenManager implements SessionTokenManager {
   create(): SessionToken {
