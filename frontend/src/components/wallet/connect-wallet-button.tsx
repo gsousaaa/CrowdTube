@@ -10,7 +10,9 @@ import {
 import { createWallet } from "thirdweb/wallets";
 
 import { thirdwebClient } from "@/lib/thirdweb/client";
+import { logoutSession } from "@/lib/api/auth";
 import { crowdTubeChain, isHardhatNetwork } from "@/lib/web3/network";
+import { useOptionalAdminWalletAuth } from "./admin-wallet-auth-provider";
 
 function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -21,6 +23,7 @@ export function ConnectWalletButton() {
   const activeWallet = useActiveWallet();
   const { connect, isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
+  const adminAuth = useOptionalAdminWalletAuth();
   const [connectionError, setConnectionError] = useState<string>();
   const [isWalletSelectorOpen, setIsWalletSelectorOpen] = useState(false);
   const menuRef = useRef<HTMLDetailsElement>(null);
@@ -53,7 +56,9 @@ export function ConnectWalletButton() {
     }
   }
 
-  function handleSwitchWallet() {
+  async function handleSwitchWallet() {
+    await logoutSession().catch(() => undefined);
+    adminAuth?.clear();
     if (activeWallet) {
       disconnect(activeWallet);
     }
@@ -65,7 +70,9 @@ export function ConnectWalletButton() {
     setIsWalletSelectorOpen(true);
   }
 
-  function handleDisconnect() {
+  async function handleDisconnect() {
+    await logoutSession().catch(() => undefined);
+    adminAuth?.clear();
     if (activeWallet) {
       disconnect(activeWallet);
     }
@@ -125,8 +132,9 @@ export function ConnectWalletButton() {
   return (
     <details ref={menuRef} className="relative">
       <summary className="flex h-[50px] cursor-pointer list-none items-center gap-2 rounded-xl bg-white px-4 font-medium text-zinc-950 transition hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
-        <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
+        <span className={`size-2 rounded-full ${adminAuth?.status === "error" ? "bg-amber-500" : adminAuth?.status === "authenticating" ? "bg-amber-300" : "bg-emerald-500"}`} aria-hidden="true" />
         {shortenAddress(account.address)}
+        {adminAuth?.status === "authenticating" && <span className="text-xs">Entrando...</span>}
       </summary>
 
       <div className="absolute top-full right-0 z-50 mt-2 w-56 rounded-xl border border-white/10 bg-zinc-950 p-2 shadow-2xl">
@@ -136,6 +144,18 @@ export function ConnectWalletButton() {
         >
           {account.address}
         </p>
+        {adminAuth?.status === "error" && (
+          <>
+            <p role="alert" className="px-3 py-2 text-xs text-amber-200">{adminAuth.error}</p>
+            <button
+              type="button"
+              onClick={() => void adminAuth.retry()}
+              className="w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-300 transition hover:bg-white/10"
+            >
+              Tentar autenticar novamente
+            </button>
+          </>
+        )}
         <button
           type="button"
           onClick={handleSwitchWallet}

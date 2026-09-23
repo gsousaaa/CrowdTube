@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AdminCampaignList } from "@/components/campaign/admin-campaign-list";
 import { CreateCampaignModal } from "@/components/campaign/create-campaign-modal";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -16,6 +18,7 @@ export default function AdminPage() {
               <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Painel de campanhas</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <Link href="/campaigns" className="rounded-xl border border-white/15 px-4 py-3 text-sm text-zinc-300 hover:border-white/30 hover:text-white">Campanhas públicas</Link>
               <CreateCampaignModal />
               <ConnectWalletButton />
             </div>

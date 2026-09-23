@@ -7,9 +7,10 @@ import {
   useSendTransaction,
 } from "thirdweb/react";
 
-import { useMockCampaigns } from "@/hooks/use-mock-campaigns";
+import { useAdminCampaigns } from "@/hooks/use-admin-campaigns";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
+import { crowdTubeChain } from "@/lib/web3/network";
 
 type CreatorCampaignBalance = {
   campaignId: string;
@@ -33,7 +34,7 @@ function formatEther(value: bigint) {
 }
 
 export function CreatorBalancePanel() {
-  const { campaigns, isLoaded } = useMockCampaigns();
+  const { campaigns, status: campaignStatus, error: campaignError } = useAdminCampaigns();
   const [creatorCampaigns, setCreatorCampaigns] =
     useState<CreatorCampaignBalance[]>([]);
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
@@ -43,7 +44,7 @@ export function CreatorBalancePanel() {
   const sendTransaction = useSendTransaction({ payModal: false });
 
   const loadCreatorBalances = useCallback(async () => {
-    if (!account || !isLoaded) {
+    if (!account || campaignStatus !== "ready") {
       setCreatorCampaigns([]);
       return;
     }
@@ -52,9 +53,14 @@ export function CreatorBalancePanel() {
 
     const results = await Promise.allSettled(
       campaigns
-        .filter((campaign) => campaign.hasLocalContract)
+        .filter((campaign) =>
+          campaign.status === "published" &&
+          campaign.onchainCampaignId !== null &&
+          campaign.chainId === crowdTubeChain.id &&
+          campaign.contractAddress?.toLowerCase() === crowdTubeCampaignsContract.address.toLowerCase(),
+        )
         .map(async (campaign) => {
-          const campaignId = BigInt(campaign.id);
+          const campaignId = BigInt(campaign.onchainCampaignId!);
           const onchainCampaign = await readContract({
             contract: crowdTubeCampaignsContract,
             method: "getCampaign",
@@ -75,7 +81,7 @@ export function CreatorBalancePanel() {
           });
 
           return {
-            campaignId: campaign.id,
+            campaignId: campaign.onchainCampaignId!,
             title: campaign.title,
             availableBalance,
           };
@@ -88,7 +94,7 @@ export function CreatorBalancePanel() {
       ),
     );
     setIsLoadingBalances(false);
-  }, [account, campaigns, isLoaded]);
+  }, [account, campaigns, campaignStatus]);
 
   useEffect(() => {
     const refreshTimeout = window.setTimeout(() => {
@@ -98,11 +104,12 @@ export function CreatorBalancePanel() {
     return () => window.clearTimeout(refreshTimeout);
   }, [loadCreatorBalances]);
 
-  const totalAvailable = creatorCampaigns.reduce(
+  const visibleCreatorCampaigns = campaignStatus === "ready" ? creatorCampaigns : [];
+  const totalAvailable = visibleCreatorCampaigns.reduce(
     (total, campaign) => total + campaign.availableBalance,
     0n,
   );
-  const campaignsWithBalance = creatorCampaigns.filter(
+  const campaignsWithBalance = visibleCreatorCampaigns.filter(
     (campaign) => campaign.availableBalance > 0n,
   );
   const isProcessing =
@@ -159,7 +166,7 @@ export function CreatorBalancePanel() {
         <button
           type="button"
           onClick={withdrawAllAvailable}
-          disabled={!account || totalAvailable === 0n || isProcessing}
+          disabled={!account || campaignStatus !== "ready" || totalAvailable === 0n || isProcessing}
           className="h-11 rounded-xl bg-emerald-300 px-5 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === "awaiting-signature" && "Confirme na carteira..."}
@@ -173,9 +180,16 @@ export function CreatorBalancePanel() {
         <p className="mt-5 text-sm text-zinc-400">
           Conecte a carteira para identificar suas campanhas.
         </p>
+      ) : campaignStatus === "sign-in-required" ? (
+        <div className="mt-5">
+          <p className="text-sm text-zinc-400">Abra o menu da carteira acima para autenticar novamente ou trocar de carteira.</p>
+          {campaignError && <p role="alert" className="mt-2 text-sm text-amber-200">{campaignError}</p>}
+        </div>
+      ) : campaignStatus === "error" ? (
+        <p role="alert" className="mt-5 text-sm text-red-300">{campaignError}</p>
       ) : (
         <div className="mt-7 space-y-3">
-          {creatorCampaigns.map((campaign) => (
+          {visibleCreatorCampaigns.map((campaign) => (
             <div
               key={campaign.campaignId}
               className="flex items-center justify-between gap-4 rounded-xl bg-black/25 px-4 py-3"
@@ -193,9 +207,9 @@ export function CreatorBalancePanel() {
               </p>
             </div>
           ))}
-          {!isLoadingBalances && creatorCampaigns.length === 0 ? (
+          {!isLoadingBalances && visibleCreatorCampaigns.length === 0 ? (
             <p className="text-sm text-zinc-400">
-              Nenhuma campanha dessa carteira foi encontrada nos dados locais.
+              Nenhuma campanha publicada desta carteira possui saldo disponível.
             </p>
           ) : null}
         </div>
