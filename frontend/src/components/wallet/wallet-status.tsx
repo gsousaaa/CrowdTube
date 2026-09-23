@@ -9,6 +9,7 @@ import {
 
 import { thirdwebClient } from "@/lib/thirdweb/client";
 import { crowdTubeChain, crowdTubeNetworkName } from "@/lib/web3/network";
+import { useOptionalAdminWalletAuth } from "./admin-wallet-auth-provider";
 
 function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -18,8 +19,10 @@ export function WalletStatus() {
   const account = useActiveAccount();
   const activeChain = useActiveWalletChain();
   const connectionStatus = useActiveWalletConnectionStatus();
+  const adminAuth = useOptionalAdminWalletAuth();
 
   const isTargetNetwork = activeChain?.id === crowdTubeChain.id;
+  const isReady = isTargetNetwork && (!adminAuth || adminAuth.status === "ready");
   const {
     data: balance,
     isLoading: isBalanceLoading,
@@ -81,14 +84,18 @@ export function WalletStatus() {
 
         <p
           className={`text-sm font-medium ${
-            isTargetNetwork
+            isReady
               ? "text-emerald-600 dark:text-emerald-400"
               : "text-amber-600 dark:text-amber-400"
           }`}
         >
-          {isTargetNetwork
-            ? `Pronto para usar ${crowdTubeNetworkName}`
-            : `Carteira conectada em outra rede`}
+            {!isTargetNetwork
+              ? "Carteira conectada em outra rede"
+              : adminAuth?.status === "authenticating"
+                ? "Autenticando no painel..."
+                : adminAuth?.status === "error"
+                  ? "Autenticação pendente no menu da carteira"
+                  : `Pronto para usar ${crowdTubeNetworkName}`}
         </p>
       </div>
     </section>

@@ -39,9 +39,13 @@ function parseEtherInput(input: string) {
 
 type DonationFormProps = {
   campaignId: string;
-  goal: string;
-  remaining: string;
 };
+
+function formatRemaining(deadline: bigint): string {
+  if (deadline === 0n) return "Sem prazo";
+  const days = Math.max(0, Math.ceil((Number(deadline) * 1_000 - Date.now()) / 86_400_000));
+  return days === 0 ? "Prazo encerrado" : days === 1 ? "Resta 1 dia" : `Restam ${days} dias`;
+}
 
 type TransactionStatus =
   | "idle"
@@ -72,7 +76,7 @@ function getTransactionErrorMessage(error: unknown) {
   return "Não foi possível concluir a doação. Verifique a rede e tente novamente.";
 }
 
-export function DonationForm({ campaignId, goal, remaining }: DonationFormProps) {
+export function DonationForm({ campaignId }: DonationFormProps) {
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string>();
   const [transactionStatus, setTransactionStatus] =
@@ -174,7 +178,7 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
             Meta da campanha
           </p>
           <p className="mt-1 text-2xl font-semibold text-emerald-300">
-            {campaign.data ? `${formatEther(campaign.data.goal)} ETH` : goal}
+            {campaign.data ? `${formatEther(campaign.data.goal)} ETH` : "Consultando..."}
           </p>
           {campaign.data ? (
             <p className="mt-1 text-xs text-zinc-500">
@@ -182,7 +186,7 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
             </p>
           ) : null}
           <p className="mt-1 text-sm text-zinc-400">
-            {remaining === "Sem prazo" ? remaining : `Restam ${remaining}`}
+            {campaign.data ? formatRemaining(campaign.data.deadline) : "Consultando prazo..."}
           </p>
         </div>
       </div>
@@ -241,7 +245,7 @@ export function DonationForm({ campaignId, goal, remaining }: DonationFormProps)
 
       <button
         type="submit"
-        disabled={isProcessing || isCampaignInactive}
+        disabled={isProcessing || isCampaignInactive || !campaign.data}
         className="mt-5 h-11 w-full rounded-xl bg-emerald-300 font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {transactionStatus === "awaiting-signature" && "Confirme na carteira..."}
