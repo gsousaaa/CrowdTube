@@ -1,6 +1,17 @@
 import { apiRequest } from "./client";
 
-export async function uploadCampaignImage(file: File): Promise<string> {
+type MediaPurpose = "profile-avatar" | "campaign-image";
+
+export type MediaReadUrl = {
+  mediaUrl: string;
+  objectKey: string;
+  expiresAt: string;
+};
+
+async function uploadImage(
+  file: File,
+  purpose: MediaPurpose,
+): Promise<string> {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
     throw new Error("Escolha uma imagem JPG, PNG ou WebP.");
   }
@@ -14,7 +25,7 @@ export async function uploadCampaignImage(file: File): Promise<string> {
     body: JSON.stringify({
       fileName: file.name,
       contentType: file.type,
-      purpose: "campaign-image",
+      purpose,
     }),
   });
 
@@ -32,8 +43,16 @@ export async function uploadCampaignImage(file: File): Promise<string> {
   return signedUpload.objectKey;
 }
 
-export function getCampaignImageUrl(objectKey: string): Promise<{ mediaUrl: string; expiresAt: string }> {
-  return apiRequest(
+export function uploadCampaignImage(file: File): Promise<string> {
+  return uploadImage(file, "campaign-image");
+}
+
+export function uploadProfileAvatar(file: File): Promise<string> {
+  return uploadImage(file, "profile-avatar");
+}
+
+export function getMediaUrl(objectKey: string): Promise<MediaReadUrl> {
+  return apiRequest<MediaReadUrl>(
     `/uploads/media?objectKey=${encodeURIComponent(objectKey)}`,
   );
 }

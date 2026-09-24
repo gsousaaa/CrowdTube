@@ -186,6 +186,7 @@ describe("authentication session use cases", () => {
     });
 
     assert.equal(profile.displayName, "Creator");
+    assert.equal(profile.avatarObjectKey, null);
     assert.equal(profile.authenticatedWalletAddress, walletAddress);
     assert.equal(profile.wallets.length, 1);
     assert.equal(profile.wallets[0]?.isPrimary, true);

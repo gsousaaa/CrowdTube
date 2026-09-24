@@ -57,12 +57,21 @@ export function registerProfileRoutes(
                 { type: "null" },
               ],
             },
+            avatarObjectKey: {
+              description:
+                "Chave permanente retornada pela criação da URL pré-assinada para profile-avatar.",
+              anyOf: [
+                { type: "string", minLength: 1, maxLength: 1_024 },
+                { type: "null" },
+              ],
+            },
           },
         },
         response: {
           200: { $ref: "currentUserProfile#" },
           400: { $ref: "errorResponse#" },
           401: { $ref: "errorResponse#" },
+          403: { $ref: "errorResponse#" },
         },
       },
     },

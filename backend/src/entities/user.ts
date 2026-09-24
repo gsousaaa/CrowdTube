@@ -4,12 +4,12 @@ export type CreateUserInput = {
   displayName?: string | null;
   bio?: string | null;
   youtubeChannelUrl?: string | null;
-  avatarUrl?: string | null;
+  avatarObjectKey?: string | null;
 };
 
 export type UpdateUserProfileInput = Pick<
   CreateUserInput,
-  "displayName" | "bio" | "youtubeChannelUrl"
+  "displayName" | "bio" | "youtubeChannelUrl" | "avatarObjectKey"
 >;
 
 export class User {
@@ -17,7 +17,7 @@ export class User {
   displayName!: string | null;
   bio!: string | null;
   youtubeChannelUrl!: string | null;
-  avatarUrl!: string | null;
+  avatarObjectKey!: string | null;
   createdAt!: Date;
   updatedAt!: Date;
 
@@ -29,7 +29,7 @@ export class User {
     user.displayName = input.displayName ?? null;
     user.bio = input.bio ?? null;
     user.youtubeChannelUrl = input.youtubeChannelUrl ?? null;
-    user.avatarUrl = input.avatarUrl ?? null;
+    user.avatarObjectKey = input.avatarObjectKey ?? null;
     user.createdAt = now;
     user.updatedAt = now;
 
@@ -47,6 +47,10 @@ export class User {
 
     if ("youtubeChannelUrl" in input) {
       this.youtubeChannelUrl = input.youtubeChannelUrl?.trim() || null;
+    }
+
+    if ("avatarObjectKey" in input) {
+      this.avatarObjectKey = input.avatarObjectKey?.trim() || null;
     }
 
     this.updatedAt = now;
