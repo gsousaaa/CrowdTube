@@ -13,7 +13,7 @@ export type AdminProfile = {
   displayName: string | null;
   bio: string | null;
   youtubeChannelUrl: string | null;
-  avatarUrl: string | null;
+  avatarObjectKey: string | null;
   authenticatedWalletAddress: string;
   wallets: ProfileWallet[];
 };
@@ -22,6 +22,7 @@ export type UpdateAdminProfileInput = Partial<{
   displayName: string | null;
   bio: string | null;
   youtubeChannelUrl: string | null;
+  avatarObjectKey: string | null;
 }>;
 
 export function getAdminProfile(): Promise<AdminProfile> {

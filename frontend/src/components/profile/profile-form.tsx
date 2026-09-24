@@ -1,7 +1,16 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import Image from "next/image";
+import {
+  DragEvent,
+  FormEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
+import { useMediaUrl } from "@/hooks/use-media-url";
+import { uploadProfileAvatar } from "@/lib/api/media";
 import type {
   AdminProfile,
   UpdateAdminProfileInput,
@@ -38,12 +47,47 @@ export function ProfileForm({
   onSave: (input: UpdateAdminProfileInput) => Promise<AdminProfile>;
 }) {
   const [message, setMessage] = useState<SaveMessage>();
+  const [avatarFile, setAvatarFile] = useState<File>();
+  const [removeAvatar, setRemoveAvatar] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [fields, setFields] = useState({
     displayName: profile.displayName ?? "",
     bio: profile.bio ?? "",
     youtubeChannelUrl: profile.youtubeChannelUrl ?? "",
   });
   const initial = profile.displayName?.trim().charAt(0).toUpperCase() || "?";
+  const { url: storedAvatarUrl } = useMediaUrl(profile.avatarObjectKey);
+  const avatarPreviewUrl = useMemo(
+    () => avatarFile ? URL.createObjectURL(avatarFile) : undefined,
+    [avatarFile],
+  );
+  const displayedAvatarUrl = removeAvatar
+    ? undefined
+    : avatarPreviewUrl ?? storedAvatarUrl;
+
+  useEffect(() => () => {
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+  }, [avatarPreviewUrl]);
+
+  function selectAvatarFile(file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setMessage({
+        type: "error",
+        text: "Escolha uma imagem JPG, PNG ou WebP.",
+      });
+      return;
+    }
+
+    setAvatarFile(file);
+    setRemoveAvatar(false);
+    setMessage(undefined);
+  }
+
+  function handleAvatarDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) selectAvatarFile(file);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,18 +110,31 @@ export function ProfileForm({
       changes.youtubeChannelUrl = values.youtubeChannelUrl;
     }
 
-    if (Object.keys(changes).length === 0) {
+    if (
+      Object.keys(changes).length === 0 &&
+      !avatarFile &&
+      !(removeAvatar && profile.avatarObjectKey)
+    ) {
       setMessage({ type: "info", text: "Nenhuma alteração para salvar." });
       return;
     }
 
     try {
+      if (avatarFile) {
+        setIsUploadingAvatar(true);
+        changes.avatarObjectKey = await uploadProfileAvatar(avatarFile);
+      } else if (removeAvatar && profile.avatarObjectKey) {
+        changes.avatarObjectKey = null;
+      }
+
       const updatedProfile = await onSave(changes);
       setFields({
         displayName: updatedProfile.displayName ?? "",
         bio: updatedProfile.bio ?? "",
         youtubeChannelUrl: updatedProfile.youtubeChannelUrl ?? "",
       });
+      setAvatarFile(undefined);
+      setRemoveAvatar(false);
       setMessage({ type: "success", text: "Perfil atualizado com sucesso." });
     } catch (cause) {
       setMessage({
@@ -86,8 +143,12 @@ export function ProfileForm({
           ? cause.message
           : "Não foi possível atualizar o perfil.",
       });
+    } finally {
+      setIsUploadingAvatar(false);
     }
   }
+
+  const isSubmitting = isSaving || isUploadingAvatar;
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -96,25 +157,92 @@ export function ProfileForm({
         onInput={() => setMessage(undefined)}
         className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-7"
       >
-        <div className="flex flex-col gap-5 border-b border-white/10 pb-6 sm:flex-row sm:items-center">
-          <div
-            role="img"
-            aria-label={`Avatar de ${profile.displayName ?? "criador"}`}
-            className="grid size-20 shrink-0 place-items-center rounded-3xl bg-emerald-300 text-2xl font-bold text-zinc-950"
-          >
-            {initial}
+        <div className="border-b border-white/10 pb-6">
+          <h2 className="text-xl font-semibold">Foto de perfil</h2>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-zinc-400">
+            Esta imagem aparecerá junto ao seu perfil e às suas campanhas.
+          </p>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-[96px_minmax(0,1fr)] sm:items-stretch">
+            <div className="relative grid size-24 place-items-center overflow-hidden rounded-3xl bg-emerald-300 text-3xl font-bold text-zinc-950">
+              {displayedAvatarUrl ? (
+                <Image
+                  src={displayedAvatarUrl}
+                  alt={`Avatar de ${profile.displayName ?? "criador"}`}
+                  fill
+                  sizes="96px"
+                  unoptimized
+                  className="object-cover"
+                />
+              ) : (
+                <span aria-hidden="true">{initial}</span>
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <label
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={handleAvatarDrop}
+                className="flex min-h-24 cursor-pointer items-center gap-4 rounded-2xl border border-dashed border-white/20 bg-white/[0.025] px-5 py-4 transition hover:border-emerald-300/50 hover:bg-emerald-300/[0.04] focus-within:border-emerald-300/60 focus-within:ring-2 focus-within:ring-emerald-300/10"
+              >
+                <span
+                  aria-hidden="true"
+                  className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-300/10 text-xl text-emerald-200"
+                >
+                  ↑
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-zinc-200">
+                    {avatarFile
+                      ? "Clique para trocar a imagem"
+                      : "Clique ou arraste uma imagem aqui"}
+                  </span>
+                  <span className="mt-1 block truncate text-xs text-zinc-500">
+                    {avatarFile?.name ?? "JPG, PNG ou WebP"}
+                  </span>
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) selectAvatarFile(file);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                {avatarFile && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarFile(undefined)}
+                    className="text-xs text-zinc-400 transition hover:text-white"
+                  >
+                    Cancelar nova imagem
+                  </button>
+                )}
+
+                {!avatarFile && profile.avatarObjectKey && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemoveAvatar((current) => !current);
+                      setMessage(undefined);
+                    }}
+                    className="text-xs text-zinc-400 transition hover:text-white"
+                  >
+                    {removeAvatar ? "Manter foto atual" : "Remover foto atual"}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-semibold">Informações públicas</h2>
-            <p className="mt-1 max-w-xl text-sm leading-6 text-zinc-400">
-              Estes dados são armazenados no PostgreSQL e poderão ser exibidos
-              nas páginas públicas das suas campanhas.
-            </p>
-            <p className="mt-2 text-xs text-zinc-500">
-              O upload da foto será conectado quando a API puder associar a
-              imagem enviada ao perfil.
-            </p>
-          </div>
+        </div>
+
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold">Informações</h2>
         </div>
 
         <div className="mt-6 space-y-5">
@@ -163,9 +291,6 @@ export function ProfileForm({
               placeholder="https://youtube.com/@seu-canal"
               className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
             />
-            <span className="block text-xs leading-5 text-zinc-500">
-              O backend aceita somente endereços do YouTube ou youtu.be.
-            </span>
           </label>
         </div>
 
@@ -183,10 +308,14 @@ export function ProfileForm({
           </div>
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={isSubmitting}
             className="h-11 rounded-xl bg-emerald-300 px-5 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving ? "Salvando..." : "Salvar alterações"}
+            {isUploadingAvatar
+              ? "Enviando foto..."
+              : isSaving
+                ? "Salvando..."
+                : "Salvar alterações"}
           </button>
         </div>
       </form>
