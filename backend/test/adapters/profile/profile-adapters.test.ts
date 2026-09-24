@@ -30,7 +30,7 @@ const profile = {
   displayName: "Creator",
   bio: null,
   youtubeChannelUrl: null,
-  avatarUrl: null,
+  avatarObjectKey: null,
   authenticatedWalletAddress: walletAddress,
   wallets: [],
 };
@@ -70,6 +70,9 @@ describe("profile adapters", () => {
       makeRequest({
         displayName: "  New creator  ",
         youtubeChannelUrl: "https://www.youtube.com/@creator",
+        avatarObjectKey:
+          `users/${userId}/profile-avatar/` +
+          "69cc5f83-e496-4226-8622-daba1b38c21e-avatar.png",
       }),
     );
 
@@ -79,6 +82,9 @@ describe("profile adapters", () => {
       authenticatedWalletAddress: walletAddress,
       displayName: "New creator",
       youtubeChannelUrl: "https://www.youtube.com/@creator",
+      avatarObjectKey:
+        `users/${userId}/profile-avatar/` +
+        "69cc5f83-e496-4226-8622-daba1b38c21e-avatar.png",
     });
   });
 

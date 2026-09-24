@@ -7,6 +7,7 @@ import { CreateUsersAndUserWallets1770000000000 } from "./migrations/17700000000
 import { CreateAuthNonces1789644794085 } from "./migrations/1789644794085-CreateAuthNonces";
 import { CreateCampaigns1790000000000 } from "./migrations/1790000000000-CreateCampaigns";
 import { CreateChainSyncState1790000000001 } from "./migrations/1790000000001-CreateChainSyncState";
+import { RenameUserAvatarToObjectKey1790208000000 } from "./migrations/1790208000000-RenameUserAvatarToObjectKey";
 import { AuthSessionSchema } from "./typeorm/entities/auth-session-schema";
 import { AuthNonceSchema } from "./typeorm/entities/auth-nonce-schema";
 import { UserSchema } from "./typeorm/entities/user-schema";
@@ -34,6 +35,7 @@ export function makeTypeOrmDataSource(config: AppConfig): DataSource {
       CreateAuthSessions1789720000000,
       CreateCampaigns1790000000000,
       CreateChainSyncState1790000000001,
+      RenameUserAvatarToObjectKey1790208000000,
     ],
     synchronize: false,
     logging: config.NODE_ENV === "dev" ? ["error", "warn"] : false,

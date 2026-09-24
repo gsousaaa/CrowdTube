@@ -30,6 +30,7 @@ const requestBodySchema = z
     displayName: nullableTrimmedString(100),
     bio: nullableTrimmedString(500),
     youtubeChannelUrl: youtubeChannelUrlSchema,
+    avatarObjectKey: nullableTrimmedString(1_024),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, {

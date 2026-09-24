@@ -28,10 +28,10 @@ export const UserSchema = new EntitySchema<User>({
       length: 500,
       nullable: true,
     },
-    avatarUrl: {
-      name: "avatar_url",
+    avatarObjectKey: {
+      name: "avatar_object_key",
       type: "varchar",
-      length: 500,
+      length: 1024,
       nullable: true,
     },
     createdAt: {

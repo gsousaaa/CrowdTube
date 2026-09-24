@@ -7,7 +7,7 @@ export type Profile = {
   displayName: string | null;
   bio: string | null;
   youtubeChannelUrl: string | null;
-  avatarUrl: string | null;
+  avatarObjectKey: string | null;
   authenticatedWalletAddress: string;
   wallets: Array<{
     id: string;
@@ -45,7 +45,7 @@ export class GetProfileUseCase {
       displayName: user.displayName,
       bio: user.bio,
       youtubeChannelUrl: user.youtubeChannelUrl,
-      avatarUrl: user.avatarUrl,
+      avatarObjectKey: user.avatarObjectKey,
       authenticatedWalletAddress: input.authenticatedWalletAddress,
       wallets: wallets.map((wallet) => ({
         id: wallet.id,
