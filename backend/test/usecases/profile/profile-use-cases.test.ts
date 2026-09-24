@@ -116,6 +116,39 @@ describe("profile use cases", () => {
     assert.equal(user.updatedAt, now);
   });
 
+  it("stores an avatar object key owned by the authenticated user", async () => {
+    const { updateProfile, user } = makeScenario();
+    const avatarObjectKey =
+      `users/${user.id}/profile-avatar/` +
+      "69cc5f83-e496-4226-8622-daba1b38c21e-avatar.png";
+
+    const profile = await updateProfile.execute({
+      userId: user.id,
+      authenticatedWalletAddress: walletAddress,
+      avatarObjectKey,
+    });
+
+    assert.equal(profile.avatarObjectKey, avatarObjectKey);
+    assert.equal(user.avatarObjectKey, avatarObjectKey);
+  });
+
+  it("rejects an avatar object key owned by another user", async () => {
+    const { updateProfile, user } = makeScenario();
+
+    await assert.rejects(
+      updateProfile.execute({
+        userId: user.id,
+        authenticatedWalletAddress: walletAddress,
+        avatarObjectKey:
+          "users/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/profile-avatar/" +
+          "69cc5f83-e496-4226-8622-daba1b38c21e-avatar.png",
+      }),
+      (error: unknown) =>
+        error instanceof AppError &&
+        error.code === "PROFILE_AVATAR_ACCESS_DENIED",
+    );
+  });
+
   it("rejects a session whose user no longer exists", async () => {
     const { getProfile } = makeScenario();
 

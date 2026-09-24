@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type SidebarItem = {
   label: string;
@@ -12,6 +16,7 @@ const navigation: SidebarItem[] = [
     label: "Perfil",
     description: "Foto, dados do criador e canal no YouTube",
     icon: "profile",
+    href: "/admin/profile",
   },
   {
     label: "Carteira",
@@ -77,35 +82,119 @@ function SidebarIcon({ name }: { name: SidebarItem["icon"] }) {
   );
 }
 
-export function AppSidebar() {
+function MenuIcon({ isOpen }: { isOpen: boolean }) {
   return (
-    <aside className="flex items-center gap-4 border-b border-white/10 px-4 py-4 lg:min-h-[740px] lg:flex-col lg:border-r lg:border-b-0 lg:px-3 lg:py-5">
-      <div
-        className="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-300 font-bold text-zinc-950"
-        aria-label="CrowdTube"
-      >
-        CT
-      </div>
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+      {isOpen ? (
+        <path
+          d="m6 6 12 12M18 6 6 18"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      ) : (
+        <path
+          d="M4 7h16M4 12h16M4 17h16"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  );
+}
 
-      <nav aria-label="Área do criador" className="min-w-0 flex-1 lg:mt-8">
-        <ul className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
-          {navigation.map((item) => (
+function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
+  const pathname = usePathname();
+
+  return (
+    <nav aria-label="Área do criador" className="mt-8">
+      <ul className="space-y-2">
+        {navigation.map((item) => {
+          const isActive = item.href === pathname;
+          const content = (
+            <>
+              <span
+                className={`grid size-11 shrink-0 place-items-center rounded-xl border transition ${
+                  isActive
+                    ? "border-emerald-300/50 bg-emerald-300/15 text-emerald-200"
+                    : "border-white/10 text-zinc-400"
+                }`}
+              >
+                <SidebarIcon name={item.icon} />
+              </span>
+              <span className="min-w-0 text-left">
+                <span className="block text-sm font-medium text-zinc-100">
+                  {item.label}
+                </span>
+                <span className="mt-0.5 block text-xs leading-5 text-zinc-500">
+                  {item.description}
+                </span>
+              </span>
+            </>
+          );
+
+          return (
+            <li key={item.label}>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={isActive ? "page" : undefined}
+                  className="flex w-full items-center gap-3 rounded-2xl p-2 transition hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title={`${item.label} — será implementado em uma próxima etapa`}
+                  className="flex w-full cursor-not-allowed items-center gap-3 rounded-2xl p-2 opacity-60"
+                >
+                  {content}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+function DesktopNavigation() {
+  const pathname = usePathname();
+
+  return (
+    <nav aria-label="Área do criador" className="mt-8 min-w-0 flex-1">
+      <ul className="flex flex-col gap-2">
+        {navigation.map((item) => {
+          const isActive = item.href === pathname;
+          const className = `flex size-12 items-center justify-center rounded-xl border transition focus-visible:outline-none ${
+            isActive
+              ? "border-emerald-300/50 bg-emerald-300/15 text-emerald-200"
+              : "border-white/10 text-zinc-400 hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-200 focus-visible:border-emerald-300/60 focus-visible:text-emerald-200"
+          }`;
+
+          return (
             <li key={item.label} className="group relative">
               {item.href ? (
                 <Link
                   href={item.href}
                   aria-label={`${item.label}: ${item.description}`}
-                  className="flex size-11 items-center justify-center rounded-xl border border-white/10 text-zinc-400 transition hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-200 focus-visible:border-emerald-300/60 focus-visible:text-emerald-200 focus-visible:outline-none lg:size-12"
+                  aria-current={isActive ? "page" : undefined}
+                  className={className}
                 >
                   <SidebarIcon name={item.icon} />
                 </Link>
               ) : (
                 <button
                   type="button"
-                  aria-disabled="true"
+                  disabled
                   aria-label={`${item.label}: ${item.description}`}
                   title={`${item.label} — será implementado em uma próxima etapa`}
-                  className="flex size-11 cursor-not-allowed items-center justify-center rounded-xl border border-white/10 text-zinc-500 transition hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-200 focus-visible:border-emerald-300/60 focus-visible:text-emerald-200 focus-visible:outline-none lg:size-12"
+                  className={`${className} cursor-not-allowed text-zinc-500`}
                 >
                   <SidebarIcon name={item.icon} />
                 </button>
@@ -118,9 +207,100 @@ export function AppSidebar() {
                 </p>
               </div>
             </li>
-          ))}
-        </ul>
-      </nav>
-    </aside>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+export function AppSidebar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  function closeMenu({ restoreFocus = false } = {}) {
+    setIsOpen(false);
+    if (restoreFocus) {
+      window.setTimeout(() => menuButtonRef.current?.focus(), 0);
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
+    const handleDesktopChange = (event: MediaQueryListEvent) => {
+      if (event.matches) closeMenu();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu({ restoreFocus: true });
+    };
+
+    desktopQuery.addEventListener("change", handleDesktopChange);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      desktopQuery.removeEventListener("change", handleDesktopChange);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <>
+      <header className="flex items-center justify-between border-b border-white/10 px-4 py-4 lg:hidden">
+        <button
+          ref={menuButtonRef}
+          type="button"
+          aria-expanded={isOpen}
+          aria-controls="mobile-creator-menu"
+          aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
+          onClick={() => setIsOpen((open) => !open)}
+          className="grid size-11 place-items-center rounded-xl border border-white/15 text-zinc-200 transition hover:border-emerald-300/50 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
+        >
+          <MenuIcon isOpen={isOpen} />
+        </button>
+      </header>
+
+      {isOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            onClick={() => closeMenu({ restoreFocus: true })}
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+          />
+          <aside
+            id="mobile-creator-menu"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu da área do criador"
+            className="relative flex h-full w-[min(86vw,320px)] flex-col border-r border-white/10 bg-zinc-950 px-5 py-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between">
+              <button
+                ref={closeButtonRef}
+                type="button"
+                aria-label="Fechar menu"
+                onClick={() => closeMenu({ restoreFocus: true })}
+                className="grid size-11 place-items-center rounded-xl border border-white/15 text-zinc-300 transition hover:border-emerald-300/50 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
+              >
+                <MenuIcon isOpen />
+              </button>
+            </div>
+            <MobileNavigation onNavigate={() => closeMenu()} />
+          </aside>
+        </div>
+      ) : null}
+
+      <aside className="hidden min-h-[740px] flex-col items-center border-r border-white/10 px-3 py-5 lg:flex">
+        <DesktopNavigation />
+      </aside>
+    </>
   );
 }

@@ -19,7 +19,7 @@ export function registerSharedSchemas(app: FastifyInstance): void {
       "displayName",
       "bio",
       "youtubeChannelUrl",
-      "avatarUrl",
+      "avatarObjectKey",
       "authenticatedWalletAddress",
       "wallets",
     ],
@@ -28,7 +28,7 @@ export function registerSharedSchemas(app: FastifyInstance): void {
       displayName: { type: ["string", "null"] },
       bio: { type: ["string", "null"] },
       youtubeChannelUrl: { type: ["string", "null"] },
-      avatarUrl: { type: ["string", "null"] },
+      avatarObjectKey: { type: ["string", "null"] },
       authenticatedWalletAddress: { type: "string" },
       wallets: {
         type: "array",

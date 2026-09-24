@@ -10,6 +10,7 @@ describe("User", () => {
     assert.match(user.id, /^[0-9a-f-]{36}$/);
     assert.equal(user.displayName, "Creator");
     assert.equal(user.bio, null);
+    assert.equal(user.avatarObjectKey, null);
     assert.equal("walletAddress" in user, false);
     assert.equal(user.createdAt instanceof Date, true);
     assert.equal(user.updatedAt instanceof Date, true);
@@ -32,10 +33,15 @@ describe("User", () => {
   });
 
   it("clears a nullable profile field when null is provided", () => {
-    const user = User.create({ bio: "Biography" });
+    const user = User.create({
+      bio: "Biography",
+      avatarObjectKey:
+        "users/user-id/profile-avatar/media-id-avatar.png",
+    });
 
-    user.updateProfile({ bio: null });
+    user.updateProfile({ bio: null, avatarObjectKey: null });
 
     assert.equal(user.bio, null);
+    assert.equal(user.avatarObjectKey, null);
   });
 });

@@ -20,6 +20,20 @@ export class UpdateProfileUseCase {
 
   async execute(input: UpdateProfileInput): Promise<Profile> {
     const { userId, authenticatedWalletAddress, ...profileFields } = input;
+
+    if (
+      profileFields.avatarObjectKey &&
+      !profileFields.avatarObjectKey.startsWith(
+        `users/${userId}/profile-avatar/`,
+      )
+    ) {
+      throw new AppError(
+        "The profile avatar does not belong to the authenticated user.",
+        403,
+        "PROFILE_AVATAR_ACCESS_DENIED",
+      );
+    }
+
     const user = await this.users.findById(userId);
 
     if (!user) {
