@@ -16,6 +16,7 @@ const navigation: SidebarItem[] = [
     label: "Perfil",
     description: "Foto, dados do criador e canal no YouTube",
     icon: "profile",
+    href: "/admin/profile",
   },
   {
     label: "Carteira",
