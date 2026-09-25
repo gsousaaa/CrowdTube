@@ -1,17 +1,17 @@
 import type { DataSource } from "typeorm";
 
 import { startRecurringWorker } from "../../common/lib/bullmq/start-recurring-worker";
-import { ViemCampaignCreationEventReader } from "../../common/lib/viem/viem-campaign-creation-event-reader";
+import { ViemDonationEventReader } from "../../common/lib/viem/viem-donation-event-reader";
 import type { CampaignWorkerConfig } from "../../config/env";
-import { CampaignCreationIndexer } from "../adapters/onchain/campaign-creation-indexer";
+import { DonationNotificationIndexer } from "../adapters/onchain/donation-notification-indexer";
 
-export function startCampaignCreationWorker(
+export function startDonationNotificationWorker(
   config: CampaignWorkerConfig,
   dataSource: DataSource,
 ) {
-  const indexer = new CampaignCreationIndexer(
+  const indexer = new DonationNotificationIndexer(
     dataSource,
-    new ViemCampaignCreationEventReader(
+    new ViemDonationEventReader(
       config.rpcUrl,
       config.chainId,
       config.contractAddress,
@@ -24,13 +24,12 @@ export function startCampaignCreationWorker(
     },
     console,
   );
-
   const queueName =
-    `crowdtube-campaign-created-${config.chainId}-${config.contractAddress.slice(2).toLowerCase()}`;
+    `crowdtube-donations-${config.chainId}-${config.contractAddress.slice(2).toLowerCase()}`;
   return startRecurringWorker({
     queueName,
-    jobName: "sync-campaign-created",
-    everyMs: config.app.CAMPAIGN_INDEXER_POLL_MS,
+    jobName: "sync-donation-notifications",
+    everyMs: config.app.DONATION_NOTIFICATION_POLL_MS,
     redisUrl: config.redisUrl,
     globalConcurrency: 1,
     workerConcurrency: 1,
