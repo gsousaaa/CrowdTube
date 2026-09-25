@@ -27,6 +27,7 @@ const config: AppConfig = {
   AWS_S3_READ_URL_TTL_SECONDS: 300,
   CAMPAIGN_CONFIRMATIONS: 1,
   CAMPAIGN_INDEXER_POLL_MS: 10_000,
+  DONATION_NOTIFICATION_POLL_MS: 10_000,
 };
 
 it("protects private routes and clears the cookie on logout", async () => {
@@ -79,6 +80,22 @@ it("protects private routes and clears the cookie on logout", async () => {
       method: "GET",
       url: "/admin/campaigns",
     });
+    const listNotificationsResponse = await app.inject({
+      method: "GET",
+      url: "/admin/notifications",
+    });
+    const readNotificationsResponse = await app.inject({
+      method: "PATCH",
+      url: "/admin/notifications/read-all",
+    });
+    const readNotificationsPreflightResponse = await app.inject({
+      method: "OPTIONS",
+      url: "/admin/notifications/read-all",
+      headers: {
+        origin: config.FRONTEND_ORIGIN,
+        "access-control-request-method": "PATCH",
+      },
+    });
     const invalidPublicCampaignSearchResponse = await app.inject({
       method: "GET",
       url: "/campaigns?page=0",
@@ -104,6 +121,25 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(createCampaignResponse.statusCode, 401);
     assert.equal(recordCreationTransactionResponse.statusCode, 401);
     assert.equal(listCampaignsResponse.statusCode, 401);
+    assert.equal(listNotificationsResponse.statusCode, 401);
+    assert.equal(readNotificationsResponse.statusCode, 401);
+    assert.equal(readNotificationsPreflightResponse.statusCode, 204);
+    assert.equal(
+      readNotificationsPreflightResponse.headers["access-control-allow-origin"],
+      config.FRONTEND_ORIGIN,
+    );
+    assert.equal(
+      readNotificationsPreflightResponse.headers[
+        "access-control-allow-credentials"
+      ],
+      "true",
+    );
+    assert.match(
+      readNotificationsPreflightResponse.headers[
+        "access-control-allow-methods"
+      ] ?? "",
+      /PATCH/,
+    );
     assert.equal(invalidPublicCampaignSearchResponse.statusCode, 400);
     assert.equal(invalidPublicCampaignDetailsResponse.statusCode, 400);
     assert.equal(logoutResponse.statusCode, 204);

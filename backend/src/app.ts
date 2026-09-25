@@ -14,6 +14,7 @@ import { registerAuthRoutes } from "./routes/auth-routes";
 import { registerCampaignRoutes } from "./routes/campaign-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
 import { registerMediaRoutes } from "./routes/media-routes";
+import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerSharedSchemas } from "./routes/schemas";
 
 function isValidationError(
@@ -37,6 +38,7 @@ export async function makeApp(
   await app.register(cors, {
     origin: config.FRONTEND_ORIGIN,
     credentials: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
   });
   await app.register(cookie);
   await app.register(sensible);
@@ -72,6 +74,7 @@ export async function makeApp(
   registerProfileRoutes(app, container);
   registerCampaignRoutes(app, container);
   registerMediaRoutes(app, container);
+  registerNotificationRoutes(app, container);
   registerHealthRoutes(app, container);
 
   return app;
