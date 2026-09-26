@@ -22,6 +22,21 @@ class InMemoryCampaignRepository implements CampaignRepository {
     );
   }
 
+  findByOnchainReference(input: {
+    chainId: number;
+    contractAddress: string;
+    onchainCampaignId: string;
+  }): Promise<Campaign | null> {
+    return Promise.resolve(
+      this.items.find(
+        (item) =>
+          item.chainId === input.chainId &&
+          item.contractAddress === input.contractAddress.toLowerCase() &&
+          item.onchainCampaignId === input.onchainCampaignId,
+      ) ?? null,
+    );
+  }
+
   markPendingOnchain(input: {
     campaignId: string;
     creatorId: string;

@@ -45,6 +45,10 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
           description: "Metadados offchain e associação onchain de campanhas.",
         },
         {
+          name: "Notifications",
+          description: "Notificações geradas a partir de eventos onchain.",
+        },
+        {
           name: "Health",
           description: "Estado da aplicação e de suas dependências.",
         },

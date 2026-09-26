@@ -17,6 +17,8 @@ import { makeGetPublicCampaignByIdAdapter } from "./adapters/campaign/get-public
 import { makeListCreatorCampaignsAdapter } from "./adapters/campaign/list-creator-campaigns-adapter";
 import { makeSearchPublicCampaignsAdapter } from "./adapters/campaign/search-public-campaigns-adapter";
 import { makeRecordCampaignCreationTransactionAdapter } from "./adapters/campaign/record-campaign-creation-transaction-adapter";
+import { makeListNotificationsAdapter } from "./adapters/notification/list-notifications-adapter";
+import { makeMarkNotificationsReadAdapter } from "./adapters/notification/mark-notifications-read-adapter";
 import { NodeSessionTokenManager } from "../common/lib/crypto/node-session-token-manager";
 import { makeControllers } from "./controllers/controller-factory";
 import { TypeOrmDatabaseHealthGateway } from "./database/typeorm-database-health-gateway";
@@ -25,6 +27,7 @@ import { makeTypeOrmDataSource } from "./database/typeorm-data-source";
 import { AuthNonce } from "./entities/auth-nonce";
 import { AuthSession } from "./entities/auth-session";
 import { Campaign } from "./entities/campaign";
+import { Notification } from "./entities/notification";
 import { User } from "./entities/user";
 import { UserWallet } from "./entities/user-wallet";
 import { TypeOrmUserRepository } from "./repository/typeorm/typeorm-user-repository";
@@ -32,6 +35,7 @@ import { TypeOrmUserWalletRepository } from "./repository/typeorm/typeorm-user-w
 import { TypeOrmAuthNonceRepository } from "./repository/typeorm/typeorm-auth-nonce-repository";
 import { TypeOrmAuthSessionRepository } from "./repository/typeorm/typeorm-auth-session-repository";
 import { TypeOrmCampaignRepository } from "./repository/typeorm/typeorm-campaign-repository";
+import { TypeOrmNotificationRepository } from "./repository/typeorm/typeorm-notification-repository";
 import { CheckHealthUseCase } from "./usecases/check-health-use-case";
 import { AuthenticateSessionUseCase } from "./usecases/auth/authenticate-session-use-case";
 import { CreateAuthChallengeUseCase } from "./usecases/auth/create-auth-challenge-use-case";
@@ -47,6 +51,8 @@ import { GetPublicCampaignByIdUseCase } from "./usecases/campaign/get-public-cam
 import { ListCreatorCampaignsUseCase } from "./usecases/campaign/list-creator-campaigns-use-case";
 import { SearchPublicCampaignsUseCase } from "./usecases/campaign/search-public-campaigns-use-case";
 import { RecordCampaignCreationTransactionUseCase } from "./usecases/campaign/record-campaign-creation-transaction-use-case";
+import { ListNotificationsUseCase } from "./usecases/notification/list-notifications-use-case";
+import { MarkNotificationsReadUseCase } from "./usecases/notification/mark-notifications-read-use-case";
 
 export function makeContainer(config: AppConfig) {
   const dataSource = makeTypeOrmDataSource(config);
@@ -69,6 +75,9 @@ export function makeContainer(config: AppConfig) {
     ),
     campaigns: new TypeOrmCampaignRepository(
       dataSource.getRepository(Campaign),
+    ),
+    notifications: new TypeOrmNotificationRepository(
+      dataSource.getRepository(Notification),
     ),
     users: new TypeOrmUserRepository(dataSource.getRepository(User)),
     userWallets: new TypeOrmUserWalletRepository(
@@ -130,6 +139,12 @@ export function makeContainer(config: AppConfig) {
       listMine: new ListCreatorCampaignsUseCase(repositories.campaigns),
       searchPublic: new SearchPublicCampaignsUseCase(repositories.campaigns),
     },
+    notifications: {
+      list: new ListNotificationsUseCase(repositories.notifications),
+      markAllRead: new MarkNotificationsReadUseCase(
+        repositories.notifications,
+      ),
+    },
   };
 
   const adapters = {
@@ -183,6 +198,14 @@ export function makeContainer(config: AppConfig) {
       }),
       searchPublic: makeSearchPublicCampaignsAdapter({
         searchPublicCampaigns: useCases.campaigns.searchPublic,
+      }),
+    },
+    notifications: {
+      list: makeListNotificationsAdapter({
+        listNotifications: useCases.notifications.list,
+      }),
+      markAllRead: makeMarkNotificationsReadAdapter({
+        markNotificationsRead: useCases.notifications.markAllRead,
       }),
     },
   };

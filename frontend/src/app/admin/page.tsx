@@ -1,9 +1,7 @@
-import Link from "next/link";
-
 import { AdminCampaignList } from "@/components/campaign/admin-campaign-list";
 import { CreateCampaignModal } from "@/components/campaign/create-campaign-modal";
+import { AdminAccountActions } from "@/components/layout/admin-account-actions";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { WalletStatus } from "@/components/wallet/wallet-status";
 
 export default function AdminPage() {
@@ -19,7 +17,7 @@ export default function AdminPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <CreateCampaignModal />
-              <ConnectWalletButton />
+              <AdminAccountActions />
             </div>
           </header>
           <div className="py-7"><WalletStatus /></div>

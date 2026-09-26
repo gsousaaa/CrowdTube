@@ -15,8 +15,8 @@
     "migration:run": "npm run build && node --env-file=.env ./node_modules/typeorm/cli.js migration:run -d dist/src/database/cli-data-source.js",
     "start": "node --env-file=.env dist/src/server.js",
     "test": "tsc -p tsconfig.test.json && node --test \"dist/test/**/*.test.js\"",
-    "worker:dev": "tsx watch --env-file=.env src/workers/campaign-creation-worker.ts",
-    "worker:start": "node --env-file=.env dist/src/workers/campaign-creation-worker.js"
+    "worker:dev": "tsx watch --env-file=.env src/workers/index.ts",
+    "worker:start": "node --env-file=.env dist/src/workers/index.js"
   },
   "keywords": [],
   "author": "gsousaaa",

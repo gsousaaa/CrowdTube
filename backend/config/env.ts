@@ -43,6 +43,11 @@ const envSchema = z.object({
   CAMPAIGN_DEPLOY_BLOCK: z.coerce.bigint().nonnegative().optional(),
   CAMPAIGN_CONFIRMATIONS: z.coerce.number().int().positive().default(1),
   CAMPAIGN_INDEXER_POLL_MS: z.coerce.number().int().min(1_000).default(10_000),
+  DONATION_NOTIFICATION_POLL_MS: z.coerce
+    .number()
+    .int()
+    .min(1_000)
+    .default(10_000),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;
