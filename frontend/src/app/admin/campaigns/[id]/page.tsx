@@ -9,8 +9,8 @@ import { CampaignImage } from "@/components/campaign/campaign-image";
 import { CampaignPublicLink } from "@/components/campaign/campaign-public-link";
 import { CampaignStatusControl } from "@/components/campaign/campaign-status-control";
 import { CampaignWithdrawalForm } from "@/components/campaign/campaign-withdrawal-form";
+import { AdminAccountActions } from "@/components/layout/admin-account-actions";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { useAdminCampaigns } from "@/hooks/use-admin-campaigns";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { crowdTubeChain } from "@/lib/web3/network";
@@ -38,7 +38,7 @@ export default function AdminCampaignDetailsPage() {
         <main className="min-w-0 px-4 py-6 sm:px-8 lg:px-10 lg:py-8">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-7">
             <Link href="/admin" className="text-sm text-zinc-400 transition hover:text-emerald-300">← Voltar para campanhas</Link>
-            <ConnectWalletButton />
+            <AdminAccountActions />
           </header>
           {!campaign ? (
             <section className="py-8 text-zinc-300">

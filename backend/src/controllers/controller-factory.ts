@@ -25,6 +25,10 @@ type ControllerFactoryDependencies = {
       listMine: ControllerAdapter;
       searchPublic: ControllerAdapter;
     };
+    notifications: {
+      list: ControllerAdapter;
+      markAllRead: ControllerAdapter;
+    };
   };
 };
 
@@ -78,6 +82,14 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       searchPublic: makeBaseController({
         adapter: adapters.campaigns.searchPublic,
+      }),
+    },
+    notifications: {
+      list: makeBaseController({
+        adapter: adapters.notifications.list,
+      }),
+      markAllRead: makeBaseController({
+        adapter: adapters.notifications.markAllRead,
       }),
     },
   };

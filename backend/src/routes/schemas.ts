@@ -54,6 +54,33 @@ export function registerSharedSchemas(app: FastifyInstance): void {
   });
 
   app.addSchema({
+    $id: "notificationItem",
+    type: "object",
+    required: [
+      "id",
+      "type",
+      "campaignId",
+      "campaignTitle",
+      "donorAddress",
+      "amountWei",
+      "transactionHash",
+      "readAt",
+      "createdAt",
+    ],
+    properties: {
+      id: { type: "string", format: "uuid" },
+      type: { type: "string", enum: ["donation_received"] },
+      campaignId: { type: "string", format: "uuid" },
+      campaignTitle: { type: "string" },
+      donorAddress: { type: "string" },
+      amountWei: { type: "string", pattern: "^[0-9]+$" },
+      transactionHash: { type: "string" },
+      readAt: { type: ["string", "null"], format: "date-time" },
+      createdAt: { type: "string", format: "date-time" },
+    },
+  });
+
+  app.addSchema({
     $id: "campaignMetadata",
     type: "object",
     required: [

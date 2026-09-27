@@ -1,8 +1,8 @@
 import Link from "next/link";
 
+import { AdminAccountActions } from "@/components/layout/admin-account-actions";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AdminProfilePanel } from "@/components/profile/admin-profile-panel";
-import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 
 export default function AdminProfilePage() {
   return (
@@ -25,7 +25,7 @@ export default function AdminProfilePage() {
                 Gerencie os dados públicos vinculados à sua conta.
               </p>
             </div>
-            <ConnectWalletButton />
+            <AdminAccountActions />
           </header>
 
           <div className="py-8">

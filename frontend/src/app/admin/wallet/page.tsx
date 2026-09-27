@@ -1,7 +1,7 @@
 import Link from "next/link";
 
+import { AdminAccountActions } from "@/components/layout/admin-account-actions";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { CreatorBalancePanel } from "@/components/wallet/creator-balance-panel";
 
 export default function AdminWalletPage() {
@@ -22,7 +22,7 @@ export default function AdminWalletPage() {
                 Carteira do criador
               </h1>
             </div>
-            <ConnectWalletButton />
+            <AdminAccountActions />
           </header>
 
           <div className="py-8">

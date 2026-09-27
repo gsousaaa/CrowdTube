@@ -20,6 +20,18 @@ export class TypeOrmCampaignRepository
     return this.repository.findOneBy({ metadataId });
   }
 
+  findByOnchainReference(input: {
+    chainId: number;
+    contractAddress: string;
+    onchainCampaignId: string;
+  }): Promise<Campaign | null> {
+    return this.repository.findOneBy({
+      chainId: input.chainId,
+      contractAddress: input.contractAddress.toLowerCase(),
+      onchainCampaignId: input.onchainCampaignId,
+    });
+  }
+
   async markPendingOnchain(input: {
     campaignId: string;
     creatorId: string;

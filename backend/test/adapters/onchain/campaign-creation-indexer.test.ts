@@ -10,14 +10,14 @@ it("advances a durable cursor in bounded confirmed batches", async () => {
   const ranges: Array<[bigint, bigint]> = [];
   const query = (sql: string, params: unknown[] = []) => {
     if (sql.includes("INSERT INTO")) {
-      cursor ??= BigInt(params[2] as string);
+      cursor ??= BigInt(params[3] as string);
       return Promise.resolve([]);
     }
     if (sql.includes("SELECT")) {
       return Promise.resolve([{ last_processed_block: cursor!.toString() }]);
     }
     if (sql.includes("UPDATE")) {
-      cursor = BigInt(params[2] as string);
+      cursor = BigInt(params[3] as string);
       return Promise.resolve([]);
     }
     throw new Error(`Unexpected query: ${sql}`);
