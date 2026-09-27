@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { type RefObject, useMemo, useRef, useState } from "react";
 
 import { useCreatorAnalytics } from "@/hooks/use-creator-analytics";
 import { formatEther } from "@/lib/web3/campaign-values";
@@ -11,6 +11,33 @@ const minimumTimelineWidth = 620;
 const timelineDayWidth = 56;
 const timelineGap = 12;
 const timelineHorizontalPadding = 16;
+
+function CalendarIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M7 3v3m10-3v3M4.5 9.5h15M6.5 5h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function openDatePicker(inputRef: RefObject<HTMLInputElement | null>) {
+  const input = inputRef.current;
+  if (!input) return;
+
+  input.focus();
+  input.showPicker?.();
+}
 
 function formatDateInput(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -75,7 +102,9 @@ function MetricCard({
 }
 
 export function CreatorAnalyticsDashboard() {
-  const [range, setRange] = useState(() => makePreset(30));
+  const [range, setRange] = useState(() => makePreset(7));
+  const fromInputRef = useRef<HTMLInputElement>(null);
+  const toInputRef = useRef<HTMLInputElement>(null);
   const apiPeriod = useMemo(() => toApiPeriod(range), [range]);
   const { analytics, status, error, refresh } = useCreatorAnalytics(apiPeriod);
   const activePreset = presets.find((days) => {
@@ -146,38 +175,66 @@ export function CreatorAnalyticsDashboard() {
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <label className="grid gap-2 text-sm text-zinc-400">
-            Data inicial
-            <input
-              type="date"
-              value={range.from}
-              max={range.to}
-              onChange={(event) => {
-                if (!event.target.value) return;
-                setRange((current) => ({
-                  ...current,
-                  from: event.target.value,
-                }));
-              }}
-              className="h-11 rounded-xl border border-white/10 bg-black/40 px-3 text-zinc-100 outline-none focus:border-emerald-300/50"
-            />
-          </label>
-          <label className="grid gap-2 text-sm text-zinc-400">
-            Data final
-            <input
-              type="date"
-              value={range.to}
-              min={range.from}
-              onChange={(event) => {
-                if (!event.target.value) return;
-                setRange((current) => ({
-                  ...current,
-                  to: event.target.value,
-                }));
-              }}
-              className="h-11 rounded-xl border border-white/10 bg-black/40 px-3 text-zinc-100 outline-none focus:border-emerald-300/50"
-            />
-          </label>
+          <div className="grid gap-2">
+            <label htmlFor="analytics-from" className="text-sm text-zinc-400">
+              Data inicial
+            </label>
+            <div className="relative">
+              <input
+                ref={fromInputRef}
+                id="analytics-from"
+                type="date"
+                value={range.from}
+                max={range.to}
+                onChange={(event) => {
+                  if (!event.target.value) return;
+                  setRange((current) => ({
+                    ...current,
+                    from: event.target.value,
+                  }));
+                }}
+                className="h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 pr-12 text-zinc-100 outline-none [color-scheme:dark] focus:border-emerald-300/50 [&::-webkit-calendar-picker-indicator]:opacity-0"
+              />
+              <button
+                type="button"
+                aria-label="Abrir seletor da data inicial"
+                onClick={() => openDatePicker(fromInputRef)}
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-zinc-400 transition hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/70"
+              >
+                <CalendarIcon />
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <label htmlFor="analytics-to" className="text-sm text-zinc-400">
+              Data final
+            </label>
+            <div className="relative">
+              <input
+                ref={toInputRef}
+                id="analytics-to"
+                type="date"
+                value={range.to}
+                min={range.from}
+                onChange={(event) => {
+                  if (!event.target.value) return;
+                  setRange((current) => ({
+                    ...current,
+                    to: event.target.value,
+                  }));
+                }}
+                className="h-11 w-full rounded-xl border border-white/10 bg-black/40 px-3 pr-12 text-zinc-100 outline-none [color-scheme:dark] focus:border-emerald-300/50 [&::-webkit-calendar-picker-indicator]:opacity-0"
+              />
+              <button
+                type="button"
+                aria-label="Abrir seletor da data final"
+                onClick={() => openDatePicker(toInputRef)}
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-zinc-400 transition hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300/70"
+              >
+                <CalendarIcon />
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
