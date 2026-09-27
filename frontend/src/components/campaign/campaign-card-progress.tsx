@@ -2,6 +2,7 @@
 
 import { useReadContract } from "thirdweb/react";
 
+import { useLanguage } from "@/i18n/language-provider";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import {
   formatEther,
@@ -14,6 +15,7 @@ type CampaignCardProgressProps = {
 };
 
 export function CampaignCardProgress({ campaignId }: CampaignCardProgressProps) {
+  const { intlLocale, t } = useLanguage();
   const campaign = useReadContract({
     contract: crowdTubeCampaignsContract,
     method: "getCampaign",
@@ -21,11 +23,11 @@ export function CampaignCardProgress({ campaignId }: CampaignCardProgressProps) 
   });
 
   if (campaign.isLoading) {
-    return <p className="text-xs text-zinc-500">Carregando progresso...</p>;
+    return <p className="text-xs text-zinc-500">{t("campaign.loadingProgress")}</p>;
   }
 
   if (campaign.isError || !campaign.data) {
-    return <p className="text-xs text-zinc-500">Dados on-chain indisponíveis</p>;
+    return <p className="text-xs text-zinc-500">{t("campaign.onchainUnavailable")}</p>;
   }
 
   const { totalRaised, goal, active } = campaign.data;
@@ -37,7 +39,7 @@ export function CampaignCardProgress({ campaignId }: CampaignCardProgressProps) 
     <div className="space-y-3">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Arrecadado</p>
+          <p className="text-xs uppercase tracking-wider text-zinc-500">{t("campaign.raised")}</p>
           <p className="mt-1 text-lg font-semibold text-emerald-300">
             {formatEther(totalRaised)} ETH
             <span className="text-sm font-normal text-zinc-500">
@@ -46,13 +48,13 @@ export function CampaignCardProgress({ campaignId }: CampaignCardProgressProps) 
           </p>
         </div>
         <span className={active ? "text-xs text-emerald-300" : "text-xs text-amber-200"}>
-          {active ? "Ativa" : "Inativa"}
+          {active ? t("campaign.active") : t("campaign.inactive")}
         </span>
       </div>
 
       <div
         role="progressbar"
-        aria-label={`Progresso da campanha ${campaignId}`}
+        aria-label={t("campaign.progressLabel", { id: campaignId })}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progressWidth}
@@ -62,7 +64,9 @@ export function CampaignCardProgress({ campaignId }: CampaignCardProgressProps) 
       </div>
 
       <p className="text-xs text-zinc-400">
-        {goalReached ? "Meta atingida" : `${percentage.toLocaleString("pt-BR")}% da meta`}
+        {goalReached
+          ? t("campaign.goalReached")
+          : t("campaign.goalPercentage", { percentage: percentage.toLocaleString(intlLocale) })}
       </p>
     </div>
   );

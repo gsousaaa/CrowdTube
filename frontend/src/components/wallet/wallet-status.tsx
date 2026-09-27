@@ -7,6 +7,7 @@ import {
   useWalletBalance,
 } from "thirdweb/react";
 
+import { useLanguage } from "@/i18n/language-provider";
 import { thirdwebClient } from "@/lib/thirdweb/client";
 import { crowdTubeChain, crowdTubeNetworkName } from "@/lib/web3/network";
 import { useOptionalAdminWalletAuth } from "./admin-wallet-auth-provider";
@@ -16,6 +17,7 @@ function shortenAddress(address: string) {
 }
 
 export function WalletStatus() {
+  const { t } = useLanguage();
   const account = useActiveAccount();
   const activeChain = useActiveWalletChain();
   const connectionStatus = useActiveWalletConnectionStatus();
@@ -37,10 +39,10 @@ export function WalletStatus() {
     return (
       <section className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-left dark:border-zinc-800 dark:bg-zinc-950">
         <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          Carteira desconectada
+          {t("wallet.disconnected")}
         </p>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Conecte uma carteira para consultar conta, rede e saldo.
+          {t("wallet.disconnectedDescription")}
         </p>
       </section>
     );
@@ -50,26 +52,26 @@ export function WalletStatus() {
     <section className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-left dark:border-zinc-800 dark:bg-zinc-950">
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Conta</p>
+          <p className="text-xs uppercase tracking-wider text-zinc-500">{t("wallet.account")}</p>
           <p className="mt-1 font-mono text-sm" title={account.address}>
             {shortenAddress(account.address)}
           </p>
         </div>
 
         <div>
-          <p className="text-xs uppercase tracking-wider text-zinc-500">Rede</p>
+          <p className="text-xs uppercase tracking-wider text-zinc-500">{t("wallet.network")}</p>
           <p className="mt-1 text-sm">
-            {activeChain?.name ?? "Rede desconhecida"}
+            {activeChain?.name ?? t("wallet.unknownNetwork")}
           </p>
         </div>
 
         <div>
           <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Saldo em {crowdTubeNetworkName}
+            {t("wallet.balanceOn", { network: crowdTubeNetworkName })}
           </p>
           <p className="mt-1 text-sm">
-            {isBalanceLoading && "Consultando..."}
-            {!isBalanceLoading && balanceError && "Não foi possível consultar"}
+            {isBalanceLoading && t("wallet.querying")}
+            {!isBalanceLoading && balanceError && t("wallet.queryError")}
             {!isBalanceLoading && !balanceError && balance
               ? `${Number(balance.displayValue).toFixed(4)} ${balance.symbol}`
               : null}
@@ -79,7 +81,7 @@ export function WalletStatus() {
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
         <p className="text-xs text-zinc-500">
-          Estado da conexão: {connectionStatus}
+          {t("wallet.connectionStatus", { status: connectionStatus })}
         </p>
 
         <p
@@ -90,12 +92,12 @@ export function WalletStatus() {
           }`}
         >
             {!isTargetNetwork
-              ? "Carteira conectada em outra rede"
+              ? t("wallet.otherNetwork")
               : adminAuth?.status === "authenticating"
-                ? "Autenticando no painel..."
+                ? t("wallet.authenticatingDashboard")
                 : adminAuth?.status === "error"
-                  ? "Autenticação pendente no menu da carteira"
-                  : `Pronto para usar ${crowdTubeNetworkName}`}
+                  ? t("wallet.authenticationPending")
+                  : t("wallet.ready", { network: crowdTubeNetworkName })}
         </p>
       </div>
     </section>

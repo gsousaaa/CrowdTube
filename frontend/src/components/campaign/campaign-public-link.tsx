@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { useLanguage } from "@/i18n/language-provider";
+
 type CampaignPublicLinkProps = {
   campaignId: string;
 };
 
 export function CampaignPublicLink({ campaignId }: CampaignPublicLinkProps) {
+  const { t } = useLanguage();
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle",
   );
@@ -31,13 +34,13 @@ export function CampaignPublicLink({ campaignId }: CampaignPublicLinkProps) {
       <div>
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/70">
-            Página pública
+            {t("campaign.publicPage")}
           </p>
           <h2 id="public-link-heading" className="mt-1 text-xl font-semibold">
-            Link para receber doações
+            {t("campaign.publicLinkTitle")}
           </h2>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Compartilhe este endereço com quem quiser apoiar a campanha.
+            {t("campaign.publicLinkDescription")}
           </p>
         </div>
 
@@ -45,7 +48,7 @@ export function CampaignPublicLink({ campaignId }: CampaignPublicLinkProps) {
 
       <div className="mt-4 flex items-center gap-2">
         <input
-          aria-label="Caminho da página pública da campanha"
+          aria-label={t("campaign.publicPathLabel")}
           value={publicPath}
           readOnly
           className="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3 font-mono text-sm text-zinc-300 outline-none"
@@ -53,8 +56,8 @@ export function CampaignPublicLink({ campaignId }: CampaignPublicLinkProps) {
         <button
           type="button"
           onClick={copyPublicLink}
-          aria-label="Copiar link público"
-          title="Copiar link público"
+          aria-label={t("campaign.copyPublicLink")}
+          title={t("campaign.copyPublicLink")}
           className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/10 text-zinc-300 transition hover:border-emerald-300/40 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
         >
           <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -66,8 +69,8 @@ export function CampaignPublicLink({ campaignId }: CampaignPublicLinkProps) {
           href={publicPath}
           target="_blank"
           rel="noreferrer"
-          aria-label="Abrir página pública em uma nova aba"
-          title="Abrir página pública"
+          aria-label={t("campaign.openPublicNewTab")}
+          title={t("campaign.openPublicPage")}
           className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/10 text-zinc-300 transition hover:border-emerald-300/40 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
         >
           <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -78,8 +81,8 @@ export function CampaignPublicLink({ campaignId }: CampaignPublicLinkProps) {
       </div>
 
       <p aria-live="polite" className="mt-2 min-h-5 text-xs text-zinc-500">
-        {copyStatus === "copied" ? "Link completo copiado." : null}
-        {copyStatus === "error" ? "Não foi possível copiar o link." : null}
+        {copyStatus === "copied" ? t("campaign.linkCopied") : null}
+        {copyStatus === "error" ? t("campaign.linkCopyError") : null}
       </p>
     </section>
   );

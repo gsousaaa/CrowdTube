@@ -10,7 +10,8 @@ import {
 } from "react";
 
 import { useMediaUrl } from "@/hooks/use-media-url";
-import { uploadProfileAvatar } from "@/lib/api/media";
+import { useLanguage } from "@/i18n/language-provider";
+import { MediaUploadError, uploadProfileAvatar } from "@/lib/api/media";
 import type {
   AdminProfile,
   UpdateAdminProfileInput,
@@ -30,8 +31,8 @@ function shortenAddress(address: string) {
   return `${address.slice(0, 8)}...${address.slice(-6)}`;
 }
 
-function formatVerifiedAt(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
+function formatVerifiedAt(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -46,6 +47,7 @@ export function ProfileForm({
   isSaving: boolean;
   onSave: (input: UpdateAdminProfileInput) => Promise<AdminProfile>;
 }) {
+  const { intlLocale, t } = useLanguage();
   const [message, setMessage] = useState<SaveMessage>();
   const [avatarFile, setAvatarFile] = useState<File>();
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -73,7 +75,7 @@ export function ProfileForm({
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       setMessage({
         type: "error",
-        text: "Escolha uma imagem JPG, PNG ou WebP.",
+        text: t("profile.invalidImage"),
       });
       return;
     }
@@ -115,7 +117,7 @@ export function ProfileForm({
       !avatarFile &&
       !(removeAvatar && profile.avatarObjectKey)
     ) {
-      setMessage({ type: "info", text: "Nenhuma alteração para salvar." });
+      setMessage({ type: "info", text: t("profile.noChanges") });
       return;
     }
 
@@ -135,13 +137,17 @@ export function ProfileForm({
       });
       setAvatarFile(undefined);
       setRemoveAvatar(false);
-      setMessage({ type: "success", text: "Perfil atualizado com sucesso." });
+      setMessage({ type: "success", text: t("profile.updated") });
     } catch (cause) {
       setMessage({
         type: "error",
-        text: cause instanceof Error
-          ? cause.message
-          : "Não foi possível atualizar o perfil.",
+        text: cause instanceof MediaUploadError
+          ? cause.code === "INVALID_TYPE"
+            ? t("profile.invalidImage")
+            : t("media.uploadError")
+          : cause instanceof Error
+            ? cause.message
+            : t("profile.updateError"),
       });
     } finally {
       setIsUploadingAvatar(false);
@@ -158,9 +164,9 @@ export function ProfileForm({
         className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-7"
       >
         <div className="border-b border-white/10 pb-6">
-          <h2 className="text-xl font-semibold">Foto de perfil</h2>
+          <h2 className="text-xl font-semibold">{t("profile.photo")}</h2>
           <p className="mt-1 max-w-xl text-sm leading-6 text-zinc-400">
-            Esta imagem aparecerá junto ao seu perfil e às suas campanhas.
+            {t("profile.photoDescription")}
           </p>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-[96px_minmax(0,1fr)] sm:items-stretch">
@@ -168,7 +174,7 @@ export function ProfileForm({
               {displayedAvatarUrl ? (
                 <Image
                   src={displayedAvatarUrl}
-                  alt={`Avatar de ${profile.displayName ?? "criador"}`}
+                  alt={t("profile.avatarAlt", { name: profile.displayName ?? t("common.creator") })}
                   fill
                   sizes="96px"
                   unoptimized
@@ -194,8 +200,8 @@ export function ProfileForm({
                 <span className="min-w-0">
                   <span className="block text-sm font-medium text-zinc-200">
                     {avatarFile
-                      ? "Clique para trocar a imagem"
-                      : "Clique ou arraste uma imagem aqui"}
+                      ? t("profile.changeImage")
+                      : t("profile.selectImage")}
                   </span>
                   <span className="mt-1 block truncate text-xs text-zinc-500">
                     {avatarFile?.name ?? "JPG, PNG ou WebP"}
@@ -220,7 +226,7 @@ export function ProfileForm({
                     onClick={() => setAvatarFile(undefined)}
                     className="text-xs text-zinc-400 transition hover:text-white"
                   >
-                    Cancelar nova imagem
+                    {t("profile.cancelNewImage")}
                   </button>
                 )}
 
@@ -233,7 +239,7 @@ export function ProfileForm({
                     }}
                     className="text-xs text-zinc-400 transition hover:text-white"
                   >
-                    {removeAvatar ? "Manter foto atual" : "Remover foto atual"}
+                    {removeAvatar ? t("profile.keepPhoto") : t("profile.removePhoto")}
                   </button>
                 )}
               </div>
@@ -242,12 +248,12 @@ export function ProfileForm({
         </div>
 
         <div className="mt-6">
-          <h2 className="text-xl font-semibold">Informações</h2>
+          <h2 className="text-xl font-semibold">{t("profile.information")}</h2>
         </div>
 
         <div className="mt-6 space-y-5">
           <label className="block space-y-2 text-sm text-zinc-300">
-            <span>Nome de exibição</span>
+            <span>{t("profile.displayName")}</span>
             <input
               name="displayName"
               type="text"
@@ -257,13 +263,13 @@ export function ProfileForm({
                 displayName: event.target.value,
               }))}
               maxLength={100}
-              placeholder="Como seu nome aparecerá nas campanhas"
+              placeholder={t("profile.displayNamePlaceholder")}
               className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
             />
           </label>
 
           <label className="block space-y-2 text-sm text-zinc-300">
-            <span>Biografia</span>
+            <span>{t("profile.bio")}</span>
             <textarea
               name="bio"
               value={fields.bio}
@@ -273,13 +279,13 @@ export function ProfileForm({
               }))}
               maxLength={500}
               rows={6}
-              placeholder="Conte brevemente sobre seu conteúdo e sua comunidade."
+              placeholder={t("profile.bioPlaceholder")}
               className="w-full resize-y rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 leading-6 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
             />
           </label>
 
           <label className="block space-y-2 text-sm text-zinc-300">
-            <span>Canal no YouTube</span>
+            <span>{t("profile.youtubeChannel")}</span>
             <input
               name="youtubeChannelUrl"
               type="url"
@@ -288,7 +294,7 @@ export function ProfileForm({
                 ...current,
                 youtubeChannelUrl: event.target.value,
               }))}
-              placeholder="https://youtube.com/@seu-canal"
+              placeholder={t("profile.youtubePlaceholder")}
               className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
             />
           </label>
@@ -312,22 +318,21 @@ export function ProfileForm({
             className="h-11 rounded-xl bg-emerald-300 px-5 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isUploadingAvatar
-              ? "Enviando foto..."
+              ? t("profile.uploadingPhoto")
               : isSaving
-                ? "Salvando..."
-                : "Salvar alterações"}
+                ? t("profile.saving")
+                : t("profile.save")}
           </button>
         </div>
       </form>
 
       <aside className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-7">
         <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/70">
-          Carteiras vinculadas
+          {t("profile.linkedWallets")}
         </p>
-        <h2 className="mt-2 text-xl font-semibold">Seus endereços</h2>
+        <h2 className="mt-2 text-xl font-semibold">{t("profile.addresses")}</h2>
         <p className="mt-2 text-sm leading-6 text-zinc-400">
-          A carteira autenticada determina qual sessão está usando o painel. A
-          propriedade financeira continua registrada no contrato.
+          {t("profile.walletDescription")}
         </p>
 
         <ul className="mt-6 space-y-3">
@@ -340,12 +345,12 @@ export function ProfileForm({
                 <div className="flex flex-wrap items-center gap-2">
                   {wallet.isPrimary && (
                     <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-xs text-emerald-200">
-                      Principal
+                      {t("profile.primary")}
                     </span>
                   )}
                   {isAuthenticated && (
                     <span className="rounded-full bg-sky-300/10 px-2.5 py-1 text-xs text-sky-200">
-                      Sessão atual
+                      {t("profile.currentSession")}
                     </span>
                   )}
                 </div>
@@ -354,7 +359,7 @@ export function ProfileForm({
                 </p>
                 {wallet.label && <p className="mt-1 text-sm text-zinc-400">{wallet.label}</p>}
                 <p className="mt-2 text-xs text-zinc-500">
-                  Verificada em {formatVerifiedAt(wallet.verifiedAt)}
+                  {t("profile.verifiedAt", { date: formatVerifiedAt(wallet.verifiedAt, intlLocale) })}
                 </p>
               </li>
             );

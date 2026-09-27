@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAdminWalletAuth } from "@/components/wallet/admin-wallet-auth-provider";
+import { useLanguage } from "@/i18n/language-provider";
 import { ApiError } from "@/lib/api/client";
 import {
   getNotifications,
@@ -13,6 +14,7 @@ import {
 type NotificationStatus = "idle" | "loading" | "ready" | "error";
 
 export function useNotifications() {
+  const { t } = useLanguage();
   const adminAuth = useAdminWalletAuth();
   const [notifications, setNotifications] = useState<DonationNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -38,11 +40,11 @@ export function useNotifications() {
         setError(
           cause instanceof Error
             ? cause.message
-            : "Não foi possível carregar as notificações.",
+            : t("notifications.loadError"),
         );
       }
     }
-  }, [adminAuth]);
+  }, [adminAuth, t]);
 
   useEffect(() => {
     if (adminAuth.status !== "ready") return;

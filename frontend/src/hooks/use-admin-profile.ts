@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 
 import { useAdminWalletAuth } from "@/components/wallet/admin-wallet-auth-provider";
+import { type Translate, useLanguage } from "@/i18n/language-provider";
 import { ApiError } from "@/lib/api/client";
 import {
   getAdminProfile,
@@ -19,14 +20,15 @@ type ProfileStatus =
   | "ready"
   | "error";
 
-function getProfileErrorMessage(cause: unknown, fallback: string) {
+function getProfileErrorMessage(cause: unknown, fallback: string, t: Translate) {
   if (cause instanceof ApiError && cause.code === "INVALID_PROFILE_DATA") {
-    return "Revise os dados informados. O canal precisa ser uma URL válida do YouTube.";
+    return t("profile.invalidData");
   }
   return cause instanceof Error ? cause.message : fallback;
 }
 
 export function useAdminProfile() {
+  const { t } = useLanguage();
   const account = useActiveAccount();
   const address = account?.address.toLowerCase() ?? null;
   const adminAuth = useAdminWalletAuth();
@@ -75,10 +77,10 @@ export function useAdminProfile() {
         setStatus("authenticating");
       } else {
         setStatus("error");
-        setError(getProfileErrorMessage(cause, "Não foi possível carregar o perfil."));
+        setError(getProfileErrorMessage(cause, t("profile.loadError"), t));
       }
     }
-  }, [address, authError, authStatus, markSessionExpired]);
+  }, [address, authError, authStatus, markSessionExpired, t]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void load(); }, 0);
@@ -90,7 +92,7 @@ export function useAdminProfile() {
 
   const save = async (input: UpdateAdminProfileInput) => {
     if (!address || authStatus !== "ready") {
-      throw new Error("Autentique sua carteira antes de editar o perfil.");
+      throw new Error(t("profile.authenticateBeforeEdit"));
     }
 
     setIsSaving(true);
@@ -106,12 +108,13 @@ export function useAdminProfile() {
       if (cause instanceof ApiError && cause.status === 401) {
         markSessionExpired();
         setStatus("authenticating");
-        throw new Error("Sua sessão expirou. Autentique a carteira novamente.");
+        throw new Error(t("profile.sessionExpired"));
       }
 
       const message = getProfileErrorMessage(
         cause,
-        "Não foi possível atualizar o perfil.",
+        t("profile.updateError"),
+        t,
       );
       setError(message);
       throw new Error(message);

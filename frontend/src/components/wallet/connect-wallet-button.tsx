@@ -9,6 +9,7 @@ import {
 } from "thirdweb/react";
 import { createWallet } from "thirdweb/wallets";
 
+import { useLanguage } from "@/i18n/language-provider";
 import { thirdwebClient } from "@/lib/thirdweb/client";
 import { logoutSession } from "@/lib/api/auth";
 import { crowdTubeChain, isHardhatNetwork } from "@/lib/web3/network";
@@ -19,6 +20,7 @@ function shortenAddress(address: string) {
 }
 
 export function ConnectWalletButton() {
+  const { t } = useLanguage();
   const account = useActiveAccount();
   const activeWallet = useActiveWallet();
   const { connect, isConnecting } = useConnect();
@@ -50,8 +52,8 @@ export function ConnectWalletButton() {
 
       setConnectionError(
         message.includes("no accounts available")
-          ? "Nenhuma conta foi liberada. Desbloqueie a extensão e autorize uma conta para este site."
-          : "A conexão foi cancelada ou não pôde ser concluída.",
+          ? t("wallet.noAccountPermission")
+          : t("wallet.connectionCancelled"),
       );
     }
   }
@@ -93,13 +95,13 @@ export function ConnectWalletButton() {
           disabled={isConnecting}
           className="h-[50px] min-w-[165px] rounded-xl bg-white px-4 font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isConnecting ? "Conectando..." : "Conectar carteira"}
+          {isConnecting ? t("wallet.connecting") : t("wallet.connect")}
         </button>
 
         {isWalletSelectorOpen ? (
           <div className="absolute top-full right-0 z-50 mt-2 w-56 rounded-xl border border-white/10 bg-zinc-950 p-2 shadow-2xl">
             <p className="px-3 py-2 text-xs uppercase tracking-wider text-zinc-500">
-              Escolha uma carteira
+              {t("wallet.choose")}
             </p>
             <button
               type="button"
@@ -134,7 +136,7 @@ export function ConnectWalletButton() {
       <summary className="flex h-[50px] cursor-pointer list-none items-center gap-2 rounded-xl bg-white px-4 font-medium text-zinc-950 transition hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
         <span className={`size-2 rounded-full ${adminAuth?.status === "error" ? "bg-amber-500" : adminAuth?.status === "authenticating" ? "bg-amber-300" : "bg-emerald-500"}`} aria-hidden="true" />
         {shortenAddress(account.address)}
-        {adminAuth?.status === "authenticating" && <span className="text-xs">Entrando...</span>}
+        {adminAuth?.status === "authenticating" && <span className="text-xs">{t("wallet.signingIn")}</span>}
       </summary>
 
       <div className="absolute top-full right-0 z-50 mt-2 w-56 rounded-xl border border-white/10 bg-zinc-950 p-2 shadow-2xl">
@@ -152,7 +154,7 @@ export function ConnectWalletButton() {
               onClick={() => void adminAuth.retry()}
               className="w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-300 transition hover:bg-white/10"
             >
-              Tentar autenticar novamente
+              {t("wallet.retryAuthentication")}
             </button>
           </>
         )}
@@ -162,14 +164,14 @@ export function ConnectWalletButton() {
           disabled={isConnecting}
           className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-200 transition hover:bg-white/10 disabled:opacity-60"
         >
-          {isConnecting ? "Abrindo carteiras..." : "Trocar carteira"}
+          {isConnecting ? t("wallet.openingWallets") : t("wallet.switch")}
         </button>
         <button
           type="button"
           onClick={handleDisconnect}
           className="w-full rounded-lg px-3 py-2 text-left text-sm text-red-300 transition hover:bg-red-400/10"
         >
-          Desconectar
+          {t("wallet.disconnect")}
         </button>
       </div>
     </details>
