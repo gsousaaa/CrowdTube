@@ -7,6 +7,7 @@ export type DonationReceivedEvent = {
   transactionHash: string;
   logIndex: number;
   blockNumber: string;
+  occurredAt: Date;
 };
 
 export interface DonationEventReader {

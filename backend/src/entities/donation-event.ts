@@ -11,6 +11,7 @@ export type CreateDonationEventInput = {
   transactionHash: string;
   logIndex: number;
   blockNumber: string;
+  occurredAt: Date;
 };
 
 export class DonationEvent {
@@ -23,6 +24,7 @@ export class DonationEvent {
   transactionHash!: string;
   logIndex!: number;
   blockNumber!: string;
+  occurredAt!: Date;
   status!: DonationEventStatus;
   attemptCount!: number;
   lastAttemptedAt!: Date | null;
@@ -41,6 +43,7 @@ export class DonationEvent {
     event.transactionHash = input.transactionHash.toLowerCase();
     event.logIndex = input.logIndex;
     event.blockNumber = input.blockNumber;
+    event.occurredAt = input.occurredAt;
     event.status = "pending";
     event.attemptCount = 0;
     event.lastAttemptedAt = null;
