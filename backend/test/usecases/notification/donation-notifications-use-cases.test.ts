@@ -163,6 +163,7 @@ const sourceEvent: DonationReceivedEvent = {
   transactionHash: `0x${"a".repeat(64)}`,
   logIndex: 2,
   blockNumber: "15",
+  occurredAt: new Date("2026-09-25T12:00:00.000Z"),
 };
 
 function makePublishedCampaign() {
@@ -188,6 +189,10 @@ describe("donation notification use cases", () => {
     assert.equal(await useCase.execute([sourceEvent]), 1);
     assert.equal(await useCase.execute([sourceEvent]), 0);
     assert.equal(donationEvents.items.length, 1);
+    assert.equal(
+      donationEvents.items[0]?.occurredAt.toISOString(),
+      sourceEvent.occurredAt.toISOString(),
+    );
   });
 
   it("keeps an unmatched donation pending and processes it later", async () => {

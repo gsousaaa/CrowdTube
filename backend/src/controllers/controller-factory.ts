@@ -29,6 +29,9 @@ type ControllerFactoryDependencies = {
       list: ControllerAdapter;
       markAllRead: ControllerAdapter;
     };
+    analytics: {
+      get: ControllerAdapter;
+    };
   };
 };
 
@@ -90,6 +93,11 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       markAllRead: makeBaseController({
         adapter: adapters.notifications.markAllRead,
+      }),
+    },
+    analytics: {
+      get: makeBaseController({
+        adapter: adapters.analytics.get,
       }),
     },
   };
