@@ -15,6 +15,7 @@ import { registerCampaignRoutes } from "./routes/campaign-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
 import { registerMediaRoutes } from "./routes/media-routes";
 import { registerNotificationRoutes } from "./routes/notification-routes";
+import { registerAnalyticsRoutes } from "./routes/analytics-routes";
 import { registerSharedSchemas } from "./routes/schemas";
 
 function isValidationError(
@@ -75,6 +76,7 @@ export async function makeApp(
   registerCampaignRoutes(app, container);
   registerMediaRoutes(app, container);
   registerNotificationRoutes(app, container);
+  registerAnalyticsRoutes(app, container);
   registerHealthRoutes(app, container);
 
   return app;
