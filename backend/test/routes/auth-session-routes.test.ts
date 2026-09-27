@@ -96,6 +96,10 @@ it("protects private routes and clears the cookie on logout", async () => {
         "access-control-request-method": "PATCH",
       },
     });
+    const analyticsResponse = await app.inject({
+      method: "GET",
+      url: "/admin/analytics",
+    });
     const invalidPublicCampaignSearchResponse = await app.inject({
       method: "GET",
       url: "/campaigns?page=0",
@@ -123,6 +127,7 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(listCampaignsResponse.statusCode, 401);
     assert.equal(listNotificationsResponse.statusCode, 401);
     assert.equal(readNotificationsResponse.statusCode, 401);
+    assert.equal(analyticsResponse.statusCode, 401);
     assert.equal(readNotificationsPreflightResponse.statusCode, 204);
     assert.equal(
       readNotificationsPreflightResponse.headers["access-control-allow-origin"],

@@ -19,6 +19,7 @@ import { makeSearchPublicCampaignsAdapter } from "./adapters/campaign/search-pub
 import { makeRecordCampaignCreationTransactionAdapter } from "./adapters/campaign/record-campaign-creation-transaction-adapter";
 import { makeListNotificationsAdapter } from "./adapters/notification/list-notifications-adapter";
 import { makeMarkNotificationsReadAdapter } from "./adapters/notification/mark-notifications-read-adapter";
+import { makeGetCreatorAnalyticsAdapter } from "./adapters/analytics/get-creator-analytics-adapter";
 import { NodeSessionTokenManager } from "../common/lib/crypto/node-session-token-manager";
 import { makeControllers } from "./controllers/controller-factory";
 import { TypeOrmDatabaseHealthGateway } from "./database/typeorm-database-health-gateway";
@@ -36,6 +37,7 @@ import { TypeOrmAuthNonceRepository } from "./repository/typeorm/typeorm-auth-no
 import { TypeOrmAuthSessionRepository } from "./repository/typeorm/typeorm-auth-session-repository";
 import { TypeOrmCampaignRepository } from "./repository/typeorm/typeorm-campaign-repository";
 import { TypeOrmNotificationRepository } from "./repository/typeorm/typeorm-notification-repository";
+import { TypeOrmAnalyticsRepository } from "./repository/typeorm/typeorm-analytics-repository";
 import { CheckHealthUseCase } from "./usecases/check-health-use-case";
 import { AuthenticateSessionUseCase } from "./usecases/auth/authenticate-session-use-case";
 import { CreateAuthChallengeUseCase } from "./usecases/auth/create-auth-challenge-use-case";
@@ -53,6 +55,7 @@ import { SearchPublicCampaignsUseCase } from "./usecases/campaign/search-public-
 import { RecordCampaignCreationTransactionUseCase } from "./usecases/campaign/record-campaign-creation-transaction-use-case";
 import { ListNotificationsUseCase } from "./usecases/notification/list-notifications-use-case";
 import { MarkNotificationsReadUseCase } from "./usecases/notification/mark-notifications-read-use-case";
+import { GetCreatorAnalyticsUseCase } from "./usecases/analytics/get-creator-analytics-use-case";
 
 export function makeContainer(config: AppConfig) {
   const dataSource = makeTypeOrmDataSource(config);
@@ -83,6 +86,7 @@ export function makeContainer(config: AppConfig) {
     userWallets: new TypeOrmUserWalletRepository(
       dataSource.getRepository(UserWallet),
     ),
+    analytics: new TypeOrmAnalyticsRepository(dataSource),
   };
 
   const getProfile = new GetProfileUseCase(
@@ -145,6 +149,9 @@ export function makeContainer(config: AppConfig) {
         repositories.notifications,
       ),
     },
+    analytics: {
+      get: new GetCreatorAnalyticsUseCase(repositories.analytics),
+    },
   };
 
   const adapters = {
@@ -206,6 +213,11 @@ export function makeContainer(config: AppConfig) {
       }),
       markAllRead: makeMarkNotificationsReadAdapter({
         markNotificationsRead: useCases.notifications.markAllRead,
+      }),
+    },
+    analytics: {
+      get: makeGetCreatorAnalyticsAdapter({
+        getCreatorAnalytics: useCases.analytics.get,
       }),
     },
   };

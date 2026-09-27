@@ -27,6 +27,7 @@ export class RecordDonationEventsUseCase {
           transactionHash: event.transactionHash,
           logIndex: event.logIndex,
           blockNumber: event.blockNumber,
+          occurredAt: event.occurredAt,
         }),
       );
       recorded += 1;

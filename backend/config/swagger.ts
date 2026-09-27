@@ -49,6 +49,10 @@ export function makeSwaggerOptions(config: AppConfig): SwaggerOptions {
           description: "Notificações geradas a partir de eventos onchain.",
         },
         {
+          name: "Analytics",
+          description: "Indicadores de arrecadação do criador autenticado.",
+        },
+        {
           name: "Health",
           description: "Estado da aplicação e de suas dependências.",
         },

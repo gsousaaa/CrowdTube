@@ -43,6 +43,10 @@ export const DonationEventSchema = new EntitySchema<DonationEvent>({
       precision: 78,
       scale: 0,
     },
+    occurredAt: {
+      name: "occurred_at",
+      type: "timestamptz",
+    },
     status: { type: "varchar", length: 32 },
     attemptCount: { name: "attempt_count", type: "integer", default: 0 },
     lastAttemptedAt: {
@@ -70,6 +74,10 @@ export const DonationEventSchema = new EntitySchema<DonationEvent>({
     {
       name: "IDX_donation_events_pending",
       columns: ["status", "createdAt"],
+    },
+    {
+      name: "IDX_donation_events_occurred_at",
+      columns: ["occurredAt"],
     },
   ],
 });

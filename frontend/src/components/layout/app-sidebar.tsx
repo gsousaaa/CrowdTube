@@ -28,6 +28,7 @@ const navigation: SidebarItem[] = [
     label: "Relatórios",
     description: "Arrecadação geral, por campanha e por período",
     icon: "report",
+    href: "/admin/analytics",
   },
 ];
 
