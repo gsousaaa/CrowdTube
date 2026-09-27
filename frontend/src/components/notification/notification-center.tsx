@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MouseEvent, useRef } from "react";
 
 import { useNotifications } from "@/hooks/use-notifications";
+import { useLanguage } from "@/i18n/language-provider";
 import { formatEther } from "@/lib/web3/campaign-values";
 
 function BellIcon() {
@@ -29,14 +30,15 @@ function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
 export function NotificationCenter() {
+  const { intlLocale, t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const {
     notifications,
@@ -64,9 +66,9 @@ export function NotificationCenter() {
         onClick={openNotifications}
         disabled={!isAvailable}
         aria-label={unreadCount > 0
-          ? `${unreadCount} notificações não lidas`
-          : "Abrir notificações"}
-        title={isAvailable ? "Notificações" : "Conecte e autentique sua carteira"}
+          ? t("notifications.unread", { count: unreadCount })
+          : t("notifications.open")}
+        title={isAvailable ? t("notifications.title") : t("notifications.authenticate")}
         className="relative grid size-11 place-items-center rounded-xl border border-white/15 text-zinc-300 transition hover:border-emerald-300/50 hover:text-emerald-200 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <BellIcon />
@@ -86,16 +88,16 @@ export function NotificationCenter() {
         <header className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-300">
-              Atualizações
+              {t("notifications.updates")}
             </p>
             <h2 id="notifications-title" className="mt-1 text-xl font-semibold">
-              Notificações
+              {t("notifications.title")}
             </h2>
           </div>
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}
-            aria-label="Fechar notificações"
+            aria-label={t("notifications.close")}
             className="grid size-10 place-items-center rounded-xl border border-white/10 text-xl text-zinc-400 transition hover:border-white/25 hover:text-white"
           >
             ×
@@ -105,7 +107,7 @@ export function NotificationCenter() {
         <div className="max-h-[60vh] overflow-y-auto p-4 sm:p-5">
           {status === "loading" && (
             <p className="py-10 text-center text-sm text-zinc-400">
-              Carregando notificações...
+              {t("notifications.loading")}
             </p>
           )}
 
@@ -117,7 +119,7 @@ export function NotificationCenter() {
                 onClick={() => void load()}
                 className="mt-3 text-sm text-red-100 underline underline-offset-4"
               >
-                Tentar novamente
+                {t("common.tryAgain")}
               </button>
             </div>
           )}
@@ -127,9 +129,9 @@ export function NotificationCenter() {
               <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-white/[0.05] text-zinc-500">
                 <BellIcon />
               </div>
-              <p className="mt-4 text-sm text-zinc-300">Nenhuma notificação ainda.</p>
+              <p className="mt-4 text-sm text-zinc-300">{t("notifications.empty")}</p>
               <p className="mt-1 text-xs text-zinc-500">
-                Novas doações aparecerão aqui.
+                {t("notifications.emptyDescription")}
               </p>
             </div>
           )}
@@ -148,13 +150,15 @@ export function NotificationCenter() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium text-zinc-100">
-                        Nova doação de {formatEther(BigInt(notification.amountWei))} ETH
+                        {t("notifications.newDonation", {
+                          amount: formatEther(BigInt(notification.amountWei)),
+                        })}
                       </p>
                       <p className="mt-1 break-words text-sm text-zinc-400">
-                        Em {notification.campaignTitle}, enviada por{" "}
-                        <span className="font-mono text-zinc-300">
-                          {shortenAddress(notification.donorAddress)}
-                        </span>
+                        {t("notifications.donationDetails", {
+                          campaign: notification.campaignTitle,
+                          donor: shortenAddress(notification.donorAddress),
+                        })}
                       </p>
                     </div>
                     {!notification.readAt && (
@@ -163,14 +167,14 @@ export function NotificationCenter() {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <time className="text-zinc-500">
-                      {formatDate(notification.createdAt)}
+                      {formatDate(notification.createdAt, intlLocale)}
                     </time>
                     <Link
                       href={`/admin/campaigns/${notification.campaignId}`}
                       onClick={() => dialogRef.current?.close()}
                       className="text-emerald-300 transition hover:text-emerald-200"
                     >
-                      Ver campanha →
+                      {t("notifications.viewCampaign")}
                     </Link>
                   </div>
                 </li>

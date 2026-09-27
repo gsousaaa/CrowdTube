@@ -8,6 +8,7 @@ import {
   useSendTransaction,
 } from "thirdweb/react";
 
+import { useLanguage } from "@/i18n/language-provider";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
 
@@ -25,6 +26,7 @@ type TransactionStatus =
 export function CampaignStatusControl({
   campaignId,
 }: CampaignStatusControlProps) {
+  const { t } = useLanguage();
   const onchainCampaignId = BigInt(campaignId);
   const [transactionStatus, setTransactionStatus] =
     useState<TransactionStatus>("idle");
@@ -50,7 +52,7 @@ export function CampaignStatusControl({
 
     try {
       if (!account || !campaign.data || !isCreator) {
-        throw new Error("Somente a carteira criadora pode alterar o status.");
+        throw new Error(t("campaign.control.creatorOnly"));
       }
 
       const transaction = prepareContractCall({
@@ -72,7 +74,7 @@ export function CampaignStatusControl({
       setError(
         statusError instanceof Error
           ? statusError.message
-          : "Não foi possível alterar o status da campanha.",
+          : t("campaign.control.updateError"),
       );
     }
   }
@@ -80,7 +82,7 @@ export function CampaignStatusControl({
   if (campaign.isLoading) {
     return (
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <p className="text-sm text-zinc-400">Consultando status da campanha...</p>
+        <p className="text-sm text-zinc-400">{t("campaign.control.loading")}</p>
       </section>
     );
   }
@@ -92,17 +94,17 @@ export function CampaignStatusControl({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-            Recebimento de doações
+            {t("campaign.control.section")}
           </p>
           <h2 className="mt-1 font-medium">
             {campaign.data.active
-              ? "Sua campanha está recebendo doações"
-              : "As doações estão pausadas"}
+              ? t("campaign.control.receiving")
+              : t("campaign.control.paused")}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
             {campaign.data.active
-              ? "Você pode pausar temporariamente o recebimento sem remover a página da campanha."
-              : "A página continua disponível, mas ninguém poderá doar até você liberar o recebimento novamente."}
+              ? t("campaign.control.receivingDescription")
+              : t("campaign.control.pausedDescription")}
           </p>
         </div>
 
@@ -113,18 +115,18 @@ export function CampaignStatusControl({
             disabled={isProcessing}
             className="h-11 rounded-xl border border-white/15 px-5 text-sm font-medium text-zinc-200 transition hover:border-emerald-300/50 hover:text-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {transactionStatus === "awaiting-signature" && "Confirme na carteira..."}
-            {transactionStatus === "sent" && "Confirmando..."}
+            {transactionStatus === "awaiting-signature" && t("campaign.control.confirmWallet")}
+            {transactionStatus === "sent" && t("campaign.control.confirming")}
             {(transactionStatus === "idle" ||
               transactionStatus === "confirmed" ||
               transactionStatus === "error") &&
               (campaign.data.active
-                ? "Pausar recebimento"
-                : "Voltar a receber doações")}
+                ? t("campaign.control.pause")
+                : t("campaign.control.resume"))}
           </button>
         ) : (
           <p className="text-xs text-zinc-500">
-            Conecte a carteira criadora para alterar o status.
+            {t("campaign.control.creatorHint")}
           </p>
         )}
       </div>
@@ -134,8 +136,8 @@ export function CampaignStatusControl({
         {transactionStatus === "confirmed" ? (
           <p className="text-sm text-emerald-200">
             {campaign.data.active
-              ? "A campanha voltou a receber doações."
-              : "O recebimento de novas doações foi pausado."}
+              ? t("campaign.control.resumed")
+              : t("campaign.control.pausedConfirmation")}
           </p>
         ) : null}
       </div>

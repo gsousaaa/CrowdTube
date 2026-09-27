@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import portugueseMessages from "@/i18n/messages/pt-BR.json";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CrowdTube",
-  description: "Financiamento coletivo Web3 para criadores do YouTube",
+  description: portugueseMessages["metadata.description"],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

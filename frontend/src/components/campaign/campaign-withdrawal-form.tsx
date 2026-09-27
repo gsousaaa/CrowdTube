@@ -9,6 +9,7 @@ import {
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
+import { type Translate, useLanguage } from "@/i18n/language-provider";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
 
@@ -43,8 +44,8 @@ function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function getWithdrawalError(error: unknown) {
-  if (!(error instanceof Error)) return "Não foi possível concluir o saque.";
+function getWithdrawalError(error: unknown, t: Translate) {
+  if (!(error instanceof Error)) return t("withdrawal.error");
 
   const message = error.message.toLowerCase();
 
@@ -53,15 +54,15 @@ function getWithdrawalError(error: unknown) {
     message.includes("denied") ||
     message.includes("cancelled")
   ) {
-    return "A assinatura do saque foi cancelada na carteira.";
+    return t("withdrawal.cancelled");
   }
 
   if (message.includes("insufficient campaign balance")) {
-    return "O valor solicitado é maior que o saldo disponível da campanha.";
+    return t("withdrawal.exceedsBalance");
   }
 
   if (message.includes("only campaign creator")) {
-    return "Somente a carteira criadora da campanha pode realizar o saque.";
+    return t("withdrawal.creatorOnly");
   }
 
   return error.message;
@@ -70,6 +71,7 @@ function getWithdrawalError(error: unknown) {
 export function CampaignWithdrawalForm({
   campaignId,
 }: CampaignWithdrawalFormProps) {
+  const { t } = useLanguage();
   const onchainCampaignId = BigInt(campaignId);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<WithdrawalStatus>("idle");
@@ -101,24 +103,24 @@ export function CampaignWithdrawalForm({
 
     try {
       if (!account || !campaign.data) {
-        throw new Error("Conecte a carteira criadora da campanha.");
+        throw new Error(t("withdrawal.connectWallet"));
       }
 
       if (!isCreator) {
-        throw new Error("Somente a carteira criadora da campanha pode realizar o saque.");
+        throw new Error(t("withdrawal.creatorOnly"));
       }
 
       const amountInWei = toWei(amount.trim().replace(",", "."));
 
       if (amountInWei <= 0n) {
-        throw new Error("O valor do saque deve ser maior que zero.");
+        throw new Error(t("withdrawal.greaterThanZero"));
       }
 
       if (
         availableBalance.data === undefined ||
         amountInWei > availableBalance.data
       ) {
-        throw new Error("O valor solicitado é maior que o saldo disponível da campanha.");
+        throw new Error(t("withdrawal.exceedsBalance"));
       }
 
       const transaction = prepareContractCall({
@@ -138,42 +140,39 @@ export function CampaignWithdrawalForm({
       notifyContractDataUpdated();
     } catch (withdrawalError) {
       setStatus("error");
-      setError(getWithdrawalError(withdrawalError));
+      setError(getWithdrawalError(withdrawalError, t));
     }
   }
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-        Gestão financeira
+        {t("withdrawal.section")}
       </p>
-      <h2 className="mt-1 font-medium">Sacar doações</h2>
+      <h2 className="mt-1 font-medium">{t("withdrawal.title")}</h2>
 
       {campaign.isLoading || availableBalance.isLoading ? (
-        <p className="mt-4 text-sm text-zinc-400">Consultando autorização e saldo...</p>
+        <p className="mt-4 text-sm text-zinc-400">{t("withdrawal.loading")}</p>
       ) : campaign.isError || availableBalance.isError || !campaign.data ? (
         <p className="mt-4 text-sm text-red-300">
-          Não foi possível consultar os dados necessários para o saque.
+          {t("withdrawal.loadError")}
         </p>
       ) : !account ? (
         <p className="mt-4 text-sm leading-6 text-zinc-400">
-          Conecte a carteira criadora para acessar o saque. Criador registrado: {" "}
-          <span className="font-mono text-zinc-300">
-            {shortAddress(campaign.data.creator)}
-          </span>
+          {t("withdrawal.connectCreator", { address: shortAddress(campaign.data.creator) })}
         </p>
       ) : !isCreator ? (
         <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/5 p-4">
-          <p className="text-sm text-amber-200">Carteira sem autorização para sacar.</p>
+          <p className="text-sm text-amber-200">{t("withdrawal.unauthorized")}</p>
           <p className="mt-1 text-xs text-zinc-500">
-            A campanha pertence a {shortAddress(campaign.data.creator)}.
+            {t("withdrawal.owner", { address: shortAddress(campaign.data.creator) })}
           </p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-4">
           <div className="flex items-end justify-between gap-4">
             <label htmlFor="withdrawal-amount" className="text-sm text-zinc-300">
-              Valor do saque
+              {t("withdrawal.amount")}
             </label>
             <button
               type="button"
@@ -182,7 +181,7 @@ export function CampaignWithdrawalForm({
               }
               className="text-xs text-emerald-300 hover:text-emerald-200"
             >
-              Usar saldo máximo: {formatEther(availableBalance.data ?? 0n)} ETH
+              {t("withdrawal.useMaximum", { amount: formatEther(availableBalance.data ?? 0n) })}
             </button>
           </div>
 
@@ -210,17 +209,17 @@ export function CampaignWithdrawalForm({
             disabled={isProcessing || availableBalance.data === 0n}
             className="mt-4 h-11 w-full rounded-xl bg-emerald-300 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {status === "awaiting-signature" && "Confirme na carteira..."}
-            {status === "sent" && "Aguardando confirmação..."}
+            {status === "awaiting-signature" && t("wallet.confirmWallet")}
+            {status === "sent" && t("wallet.awaitingConfirmation")}
             {(status === "idle" || status === "confirmed" || status === "error") &&
-              "Sacar ETH"}
+              t("withdrawal.action")}
           </button>
 
           <div aria-live="polite" className="mt-3 min-h-6">
             {error ? <p className="text-sm text-red-300">{error}</p> : null}
             {status === "confirmed" ? (
               <p className="text-sm text-emerald-200">
-                Saque confirmado. O ETH foi transferido para a carteira criadora.
+                {t("withdrawal.confirmed")}
               </p>
             ) : null}
           </div>

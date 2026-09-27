@@ -4,29 +4,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { type TranslationKey, useLanguage } from "@/i18n/language-provider";
+
 type SidebarItem = {
-  label: string;
-  description: string;
+  labelKey: TranslationKey;
+  descriptionKey: TranslationKey;
   icon: "profile" | "wallet" | "report";
   href?: string;
 };
 
 const navigation: SidebarItem[] = [
   {
-    label: "Perfil",
-    description: "Foto, dados do criador e canal no YouTube",
+    labelKey: "navigation.profile.label",
+    descriptionKey: "navigation.profile.description",
     icon: "profile",
     href: "/admin/profile",
   },
   {
-    label: "Carteira",
-    description: "Saldo recebido e saque de doações",
+    labelKey: "navigation.wallet.label",
+    descriptionKey: "navigation.wallet.description",
     icon: "wallet",
     href: "/admin/wallet",
   },
   {
-    label: "Relatórios",
-    description: "Arrecadação geral, por campanha e por período",
+    labelKey: "navigation.reports.label",
+    descriptionKey: "navigation.reports.description",
     icon: "report",
     href: "/admin/analytics",
   },
@@ -107,12 +109,15 @@ function MenuIcon({ isOpen }: { isOpen: boolean }) {
 
 function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   return (
-    <nav aria-label="Área do criador" className="mt-8">
+    <nav aria-label={t("navigation.creatorArea")} className="mt-8">
       <ul className="space-y-2">
         {navigation.map((item) => {
           const isActive = item.href === pathname;
+          const label = t(item.labelKey);
+          const description = t(item.descriptionKey);
           const content = (
             <>
               <span
@@ -126,17 +131,17 @@ function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
               </span>
               <span className="min-w-0 text-left">
                 <span className="block text-sm font-medium text-zinc-100">
-                  {item.label}
+                  {label}
                 </span>
                 <span className="mt-0.5 block text-xs leading-5 text-zinc-500">
-                  {item.description}
+                  {description}
                 </span>
               </span>
             </>
           );
 
           return (
-            <li key={item.label}>
+            <li key={item.labelKey}>
               {item.href ? (
                 <Link
                   href={item.href}
@@ -150,7 +155,7 @@ function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
                 <button
                   type="button"
                   disabled
-                  title={`${item.label} — será implementado em uma próxima etapa`}
+                  title={t("navigation.comingSoon", { label })}
                   className="flex w-full cursor-not-allowed items-center gap-3 rounded-2xl p-2 opacity-60"
                 >
                   {content}
@@ -166,12 +171,15 @@ function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
 
 function DesktopNavigation() {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   return (
-    <nav aria-label="Área do criador" className="mt-8 min-w-0 flex-1">
+    <nav aria-label={t("navigation.creatorArea")} className="mt-8 min-w-0 flex-1">
       <ul className="flex flex-col gap-2">
         {navigation.map((item) => {
           const isActive = item.href === pathname;
+          const label = t(item.labelKey);
+          const description = t(item.descriptionKey);
           const className = `flex size-12 items-center justify-center rounded-xl border transition focus-visible:outline-none ${
             isActive
               ? "border-emerald-300/50 bg-emerald-300/15 text-emerald-200"
@@ -179,11 +187,11 @@ function DesktopNavigation() {
           }`;
 
           return (
-            <li key={item.label} className="group relative">
+            <li key={item.labelKey} className="group relative">
               {item.href ? (
                 <Link
                   href={item.href}
-                  aria-label={`${item.label}: ${item.description}`}
+                  aria-label={`${label}: ${description}`}
                   aria-current={isActive ? "page" : undefined}
                   className={className}
                 >
@@ -193,8 +201,8 @@ function DesktopNavigation() {
                 <button
                   type="button"
                   disabled
-                  aria-label={`${item.label}: ${item.description}`}
-                  title={`${item.label} — será implementado em uma próxima etapa`}
+                  aria-label={`${label}: ${description}`}
+                  title={t("navigation.comingSoon", { label })}
                   className={`${className} cursor-not-allowed text-zinc-500`}
                 >
                   <SidebarIcon name={item.icon} />
@@ -202,9 +210,9 @@ function DesktopNavigation() {
               )}
 
               <div className="pointer-events-none absolute top-1/2 left-full z-10 ml-3 hidden w-56 -translate-y-1/2 rounded-xl border border-white/10 bg-zinc-950 p-3 opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
-                <p className="text-sm font-medium text-zinc-100">{item.label}</p>
+                <p className="text-sm font-medium text-zinc-100">{label}</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-400">
-                  {item.description}
+                  {description}
                 </p>
               </div>
             </li>
@@ -216,6 +224,7 @@ function DesktopNavigation() {
 }
 
 export function AppSidebar() {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -260,7 +269,7 @@ export function AppSidebar() {
           type="button"
           aria-expanded={isOpen}
           aria-controls="mobile-creator-menu"
-          aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
+          aria-label={isOpen ? t("navigation.closeMenu") : t("navigation.openMenu")}
           onClick={() => setIsOpen((open) => !open)}
           className="grid size-11 place-items-center rounded-xl border border-white/15 text-zinc-200 transition hover:border-emerald-300/50 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
         >
@@ -272,7 +281,7 @@ export function AppSidebar() {
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            aria-label="Fechar menu"
+            aria-label={t("navigation.closeMenu")}
             onClick={() => closeMenu({ restoreFocus: true })}
             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
           />
@@ -280,14 +289,14 @@ export function AppSidebar() {
             id="mobile-creator-menu"
             role="dialog"
             aria-modal="true"
-            aria-label="Menu da área do criador"
+            aria-label={t("navigation.creatorMenu")}
             className="relative flex h-full w-[min(86vw,320px)] flex-col border-r border-white/10 bg-zinc-950 px-5 py-4 shadow-2xl"
           >
             <div className="flex items-center justify-between">
               <button
                 ref={closeButtonRef}
                 type="button"
-                aria-label="Fechar menu"
+                aria-label={t("navigation.closeMenu")}
                 onClick={() => closeMenu({ restoreFocus: true })}
                 className="grid size-11 place-items-center rounded-xl border border-white/15 text-zinc-300 transition hover:border-emerald-300/50 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
               >

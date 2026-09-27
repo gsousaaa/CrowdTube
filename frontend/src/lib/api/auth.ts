@@ -8,6 +8,13 @@ export type CurrentUser = {
   authenticatedWalletAddress: string;
 };
 
+export class AuthFlowError extends Error {
+  constructor(readonly code: "NETWORK_MISMATCH" | "ACCOUNT_MISMATCH") {
+    super(code);
+    this.name = "AuthFlowError";
+  }
+}
+
 export function getCurrentUser(): Promise<CurrentUser> {
   return apiRequest("/auth/me");
 }
@@ -35,7 +42,7 @@ export async function authenticateWallet(account: Account): Promise<CurrentUser>
   );
   const challengeChainId = challenge.message.match(/^Chain ID: (\d+)$/m)?.[1];
   if (Number(challengeChainId) !== crowdTubeChain.id) {
-    throw new Error("A rede de autenticação da API não corresponde à rede configurada no frontend.");
+    throw new AuthFlowError("NETWORK_MISMATCH");
   }
   const signature = await account.signMessage({ message: challenge.message });
   await apiRequest("/auth/verify", {
@@ -45,7 +52,7 @@ export async function authenticateWallet(account: Account): Promise<CurrentUser>
 
   const user = await getCurrentUser();
   if (user.authenticatedWalletAddress.toLowerCase() !== account.address.toLowerCase()) {
-    throw new Error("A sessão criada não corresponde à carteira conectada.");
+    throw new AuthFlowError("ACCOUNT_MISMATCH");
   }
   return user;
 }

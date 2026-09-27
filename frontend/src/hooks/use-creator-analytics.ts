@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAdminWalletAuth } from "@/components/wallet/admin-wallet-auth-provider";
+import { useLanguage } from "@/i18n/language-provider";
 import {
   getCreatorAnalytics,
   type CreatorAnalytics,
@@ -17,6 +18,7 @@ type AnalyticsStatus =
   | "error";
 
 export function useCreatorAnalytics(period: { from: string; to: string }) {
+  const { t } = useLanguage();
   const adminAuth = useAdminWalletAuth();
   const authStatus = adminAuth.status;
   const markSessionExpired = adminAuth.markSessionExpired;
@@ -54,10 +56,10 @@ export function useCreatorAnalytics(period: { from: string; to: string }) {
       setError(
         cause instanceof Error
           ? cause.message
-          : "Não foi possível carregar os indicadores.",
+          : t("analytics.loadError"),
       );
     }
-  }, [authStatus, markSessionExpired, period]);
+  }, [authStatus, markSessionExpired, period, t]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
