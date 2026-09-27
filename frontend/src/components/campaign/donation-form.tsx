@@ -9,6 +9,7 @@ import {
 } from "thirdweb/react";
 import { toWei } from "thirdweb/utils";
 
+import { type Translate, useLanguage } from "@/i18n/language-provider";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import {
   formatEther,
@@ -20,18 +21,18 @@ import {
   notifyContractDataUpdated,
 } from "@/lib/web3/contract-events";
 
-function parseEtherInput(input: string) {
+function parseEtherInput(input: string, t: Translate) {
   const normalizedInput = input.trim().replace(",", ".");
   const match = normalizedInput.match(/^(0|[1-9]\d*)(?:\.(\d{1,18}))?$/);
 
   if (!match) {
-    throw new Error("Informe um valor com no máximo 18 casas decimais.");
+    throw new Error(t("donation.invalidFormat"));
   }
 
   const amountInWei = toWei(normalizedInput);
 
   if (amountInWei === BigInt(0)) {
-    throw new Error("A doação deve ser maior que zero.");
+    throw new Error(t("donation.greaterThanZero"));
   }
 
   return amountInWei;
@@ -41,10 +42,14 @@ type DonationFormProps = {
   campaignId: string;
 };
 
-function formatRemaining(deadline: bigint): string {
-  if (deadline === 0n) return "Sem prazo";
+function formatRemaining(deadline: bigint, t: Translate): string {
+  if (deadline === 0n) return t("donation.noDeadline");
   const days = Math.max(0, Math.ceil((Number(deadline) * 1_000 - Date.now()) / 86_400_000));
-  return days === 0 ? "Prazo encerrado" : days === 1 ? "Resta 1 dia" : `Restam ${days} dias`;
+  return days === 0
+    ? t("donation.deadlineEnded")
+    : days === 1
+      ? t("donation.oneDayLeft")
+      : t("donation.daysLeft", { count: days });
 }
 
 type TransactionStatus =
@@ -54,9 +59,9 @@ type TransactionStatus =
   | "confirmed"
   | "error";
 
-function getTransactionErrorMessage(error: unknown) {
+function getTransactionErrorMessage(error: unknown, t: Translate) {
   if (!(error instanceof Error)) {
-    return "Não foi possível concluir a doação.";
+    return t("donation.error");
   }
 
   const message = error.message.toLowerCase();
@@ -66,17 +71,18 @@ function getTransactionErrorMessage(error: unknown) {
     message.includes("denied") ||
     message.includes("cancelled")
   ) {
-    return "A assinatura foi cancelada na carteira.";
+    return t("donation.cancelled");
   }
 
   if (message.includes("insufficient funds")) {
-    return "A carteira não possui ETH suficiente para a doação e o gas.";
+    return t("donation.insufficientFunds");
   }
 
-  return "Não foi possível concluir a doação. Verifique a rede e tente novamente.";
+  return t("donation.networkError");
 }
 
 export function DonationForm({ campaignId }: DonationFormProps) {
+  const { intlLocale, t } = useLanguage();
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string>();
   const [transactionStatus, setTransactionStatus] =
@@ -119,14 +125,14 @@ export function DonationForm({ campaignId }: DonationFormProps) {
     setTransactionHash(undefined);
 
     try {
-      const amountInWei = parseEtherInput(amount);
+      const amountInWei = parseEtherInput(amount, t);
 
       if (!account) {
-        throw new Error("Conecte sua carteira antes de realizar a doação.");
+        throw new Error(t("donation.connectWallet"));
       }
 
       if (isCampaignInactive) {
-        throw new Error("Esta campanha está inativa e não recebe doações.");
+        throw new Error(t("donation.inactiveError"));
       }
 
       const transaction = prepareContractCall({
@@ -148,7 +154,7 @@ export function DonationForm({ campaignId }: DonationFormProps) {
       notifyContractDataUpdated();
     } catch (transactionError) {
       setTransactionStatus("error");
-      setError(getTransactionErrorMessage(transactionError));
+      setError(getTransactionErrorMessage(transactionError, t));
     }
   }
 
@@ -164,29 +170,29 @@ export function DonationForm({ campaignId }: DonationFormProps) {
       <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/70">
-            Apoie esta campanha
+            {t("donation.support")}
           </p>
           {isCampaignInactive ? (
             <span className="mt-2 inline-flex rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-xs font-medium text-amber-200">
-              Campanha está inativa
+              {t("donation.inactive")}
             </span>
           ) : null}
         </div>
 
         <div className="min-w-0 sm:min-w-36 sm:text-right">
           <p className="text-xs uppercase tracking-wider text-zinc-500">
-            Meta da campanha
+            {t("donation.goal")}
           </p>
           <p className="mt-1 text-2xl font-semibold text-emerald-300">
-            {campaign.data ? `${formatEther(campaign.data.goal)} ETH` : "Consultando..."}
+            {campaign.data ? `${formatEther(campaign.data.goal)} ETH` : t("wallet.querying")}
           </p>
           {campaign.data ? (
             <p className="mt-1 text-xs text-zinc-500">
-              {formatEther(campaign.data.totalRaised)} ETH arrecadados
+              {t("donation.raised", { amount: formatEther(campaign.data.totalRaised) })}
             </p>
           ) : null}
           <p className="mt-1 text-sm text-zinc-400">
-            {campaign.data ? formatRemaining(campaign.data.deadline) : "Consultando prazo..."}
+            {campaign.data ? formatRemaining(campaign.data.deadline, t) : t("donation.loadingDeadline")}
           </p>
         </div>
       </div>
@@ -196,13 +202,13 @@ export function DonationForm({ campaignId }: DonationFormProps) {
           <div className="mb-2 flex justify-end">
             <span className="text-sm font-medium text-emerald-200">
               {goalReached
-                ? "Meta atingida"
-                : `${progressPercentage.toLocaleString("pt-BR")}%`}
+                ? t("campaign.goalReached")
+                : `${progressPercentage.toLocaleString(intlLocale)}%`}
             </span>
           </div>
           <div
             role="progressbar"
-            aria-label="Progresso da meta da campanha"
+            aria-label={t("donation.goalProgress")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progressWidth}
@@ -240,7 +246,7 @@ export function DonationForm({ campaignId }: DonationFormProps) {
         </span>
       </div>
       <p id="donation-amount-help" className="mt-2 text-xs text-zinc-500">
-        Use ponto ou vírgula e até 18 casas decimais.
+        {t("donation.amountHelp")}
       </p>
 
       <button
@@ -248,24 +254,24 @@ export function DonationForm({ campaignId }: DonationFormProps) {
         disabled={isProcessing || isCampaignInactive || !campaign.data}
         className="mt-5 h-11 w-full rounded-xl bg-emerald-300 font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {transactionStatus === "awaiting-signature" && "Confirme na carteira..."}
-        {transactionStatus === "sent" && "Aguardando confirmação..."}
+        {transactionStatus === "awaiting-signature" && t("wallet.confirmWallet")}
+        {transactionStatus === "sent" && t("wallet.awaitingConfirmation")}
         {(transactionStatus === "idle" ||
           transactionStatus === "confirmed" ||
           transactionStatus === "error") &&
-          "Doar ETH"}
+          t("donation.action")}
       </button>
 
       <div id="donation-amount-feedback" aria-live="polite" className="mt-3 min-h-10">
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
         {transactionStatus === "confirmed" ? (
           <p className="text-sm leading-5 text-emerald-200">
-            Doação confirmada no contrato. Obrigado pelo apoio!
+            {t("donation.confirmed")}
           </p>
         ) : null}
         {transactionHash && transactionStatus === "sent" ? (
           <p className="break-all font-mono text-xs leading-5 text-zinc-400">
-            Transação enviada: {transactionHash}
+            {t("donation.transactionSent", { hash: transactionHash })}
           </p>
         ) : null}
       </div>

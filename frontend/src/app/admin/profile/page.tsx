@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
 
 import { AdminAccountActions } from "@/components/layout/admin-account-actions";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AdminProfilePanel } from "@/components/profile/admin-profile-panel";
+import { useLanguage } from "@/i18n/language-provider";
 
 export default function AdminProfilePage() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_bottom_left,_rgba(6,78,59,0.5),_transparent_38%),#020403] text-zinc-100">
       <div className="grid min-h-screen w-full overflow-hidden bg-black/65 backdrop-blur lg:grid-cols-[76px_1fr]">
@@ -16,13 +20,13 @@ export default function AdminProfilePage() {
                 href="/admin"
                 className="text-sm text-zinc-400 transition hover:text-emerald-300"
               >
-                ← Voltar para campanhas
+                {t("common.backToCampaigns")}
               </Link>
               <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
-                Perfil do criador
+                {t("admin.profile.title")}
               </h1>
               <p className="mt-2 text-sm text-zinc-400">
-                Gerencie os dados públicos vinculados à sua conta.
+                {t("admin.profile.description")}
               </p>
             </div>
             <AdminAccountActions />

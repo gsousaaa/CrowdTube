@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 
 import { useAdminWalletAuth } from "@/components/wallet/admin-wallet-auth-provider";
+import { useLanguage } from "@/i18n/language-provider";
 import { listMyCampaigns, type ApiCampaign } from "@/lib/api/campaigns";
 import { ApiError } from "@/lib/api/client";
 import { CAMPAIGNS_UPDATED_EVENT } from "@/lib/api/events";
@@ -11,6 +12,7 @@ import { CAMPAIGNS_UPDATED_EVENT } from "@/lib/api/events";
 type AdminCampaignsStatus = "loading" | "disconnected" | "sign-in-required" | "ready" | "error";
 
 export function useAdminCampaigns() {
+  const { t } = useLanguage();
   const account = useActiveAccount();
   const address = account?.address;
   const adminAuth = useAdminWalletAuth();
@@ -55,10 +57,10 @@ export function useAdminCampaigns() {
         setStatus("sign-in-required");
       } else {
         setStatus("error");
-        setError(cause instanceof Error ? cause.message : "Não foi possível carregar as campanhas.");
+        setError(cause instanceof Error ? cause.message : t("campaign.loadManyError"));
       }
     }
-  }, [address, authStatus, authError, markSessionExpired]);
+  }, [address, authStatus, authError, markSessionExpired, t]);
 
   useEffect(() => {
     const initialRefresh = window.setTimeout(() => { void refresh(); }, 0);

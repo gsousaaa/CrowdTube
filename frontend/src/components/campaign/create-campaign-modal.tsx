@@ -15,10 +15,11 @@ import {
 import { toWei } from "thirdweb/utils";
 
 import { useAdminWalletAuth } from "@/components/wallet/admin-wallet-auth-provider";
+import { type Translate, useLanguage } from "@/i18n/language-provider";
 import { createCampaignDraft, recordCampaignCreationTransaction, type CampaignCategory } from "@/lib/api/campaigns";
 import { ApiError } from "@/lib/api/client";
 import { notifyCampaignsUpdated } from "@/lib/api/events";
-import { uploadCampaignImage } from "@/lib/api/media";
+import { MediaUploadError, uploadCampaignImage } from "@/lib/api/media";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { crowdTubeChain } from "@/lib/web3/network";
 
@@ -36,19 +37,20 @@ type CreationStatus =
   | "confirmed"
   | "error";
 
-function parseDeadline(input: string) {
+function parseDeadline(input: string, t: Translate) {
   if (!input) return 0n;
 
   const deadline = new Date(`${input}T23:59:59`);
 
   if (Number.isNaN(deadline.getTime()) || deadline.getTime() <= Date.now()) {
-    throw new Error("A data de encerramento deve estar no futuro.");
+    throw new Error(t("campaign.create.invalidDeadline"));
   }
 
   return BigInt(Math.floor(deadline.getTime() / 1_000));
 }
 
 export function CreateCampaignModal() {
+  const { t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [creationStatus, setCreationStatus] = useState<CreationStatus>("idle");
   const [error, setError] = useState<string>();
@@ -92,23 +94,25 @@ export function CreateCampaignModal() {
 
     try {
       if (!account) {
-        throw new Error("Conecte sua carteira antes de criar a campanha.");
+        throw new Error(t("campaign.create.connectWallet"));
       }
       if (adminAuth.status !== "ready") {
-        throw new Error("Autentique sua carteira pelo botão no topo antes de criar a campanha.");
+        throw new Error(t("campaign.create.authenticateWallet"));
       }
       if (activeChain?.id !== crowdTubeChain.id) {
-        throw new Error(`Selecione a rede ${crowdTubeChain.name} na carteira antes de continuar.`);
+        throw new Error(t("campaign.create.selectNetwork", {
+          network: crowdTubeChain.name ?? crowdTubeChain.id,
+        }));
       }
 
       const formData = new FormData(form);
       const goalEth = String(formData.get("goal") ?? "");
       const deadlineInput = String(formData.get("deadline") ?? "");
       const goal = toWei(goalEth);
-      const deadline = parseDeadline(deadlineInput);
+      const deadline = parseDeadline(deadlineInput, t);
 
       if (goal <= 0n) {
-        throw new Error("A meta deve ser maior que zero.");
+        throw new Error(t("campaign.create.invalidGoal"));
       }
 
       const coverImage = formData.get("coverImage");
@@ -150,7 +154,7 @@ export function CreateCampaignModal() {
       } catch {
         // The indexer can still associate a draft by metadataId. Never ask the
         // user to send a second transaction merely because this API call failed.
-        setRegistrationWarning("A transação foi enviada, mas o hash não pôde ser registrado na API. Não envie outra transação; o indexador ainda poderá localizar a campanha.");
+        setRegistrationWarning(t("campaign.create.registrationWarning"));
       }
       notifyCampaignsUpdated();
 
@@ -161,10 +165,10 @@ export function CreateCampaignModal() {
       });
 
       if (!createdEvent) {
-        throw new Error("A transação confirmou, mas o evento de criação não foi encontrado.");
+        throw new Error(t("campaign.create.eventMissing"));
       }
       if (createdEvent.args.metadataId.toLowerCase() !== draft.metadataId.toLowerCase()) {
-        throw new Error("O evento confirmado não corresponde ao rascunho criado no backend.");
+        throw new Error(t("campaign.create.eventMismatch"));
       }
 
       setCreatedCampaignId(draft.id);
@@ -176,13 +180,17 @@ export function CreateCampaignModal() {
         adminAuth.markSessionExpired();
       }
       setCreationStatus("error");
-      const message = creationError instanceof Error
-        ? creationError.message
-        : "Não foi possível criar a campanha.";
+      const message = creationError instanceof MediaUploadError
+        ? creationError.code === "INVALID_TYPE"
+          ? t("profile.invalidImage")
+          : t("media.uploadError")
+        : creationError instanceof Error
+          ? creationError.message
+          : t("campaign.create.error");
       setError(submittedHash
-        ? `A transação ${submittedHash} foi enviada, mas houve uma falha ao acompanhar sua confirmação: ${message} Não envie outra transação antes de verificar a campanha.`
+        ? t("campaign.create.sentTrackingError", { hash: submittedHash, message })
         : draftId
-          ? `O rascunho ${draftId} foi salvo, mas a transação não foi enviada: ${message}`
+          ? t("campaign.create.draftError", { id: draftId, message })
           : message);
       notifyCampaignsUpdated();
     }
@@ -201,7 +209,7 @@ export function CreateCampaignModal() {
         onClick={openModal}
         className="rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-zinc-300 transition hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
       >
-        Criar campanha
+        {t("campaign.create.action")}
       </button>
 
       <dialog
@@ -215,24 +223,23 @@ export function CreateCampaignModal() {
         <div className="sticky top-0 z-10 flex items-start justify-between gap-5 border-b border-white/10 bg-zinc-950/95 px-6 py-5 backdrop-blur sm:px-8">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-300">
-              Nova campanha
+              {t("campaign.create.new")}
             </p>
             <h2 id="create-campaign-title" className="mt-2 text-2xl font-semibold">
-              Conte sua ideia
+              {t("campaign.create.title")}
             </h2>
             <p
               id="create-campaign-description"
               className="mt-2 max-w-xl text-sm leading-6 text-zinc-400"
             >
-              A apresentação será salva no backend. Meta, prazo e doações serão
-              registrados no contrato após a assinatura da carteira.
+              {t("campaign.create.description")}
             </p>
           </div>
 
           <button
             type="button"
             onClick={closeModal}
-            aria-label="Fechar modal de criação de campanha"
+            aria-label={t("campaign.create.close")}
             className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/10 text-zinc-400 transition hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
           >
             <span aria-hidden="true" className="text-xl leading-none">
@@ -251,29 +258,29 @@ export function CreateCampaignModal() {
         >
           <fieldset>
             <legend className="text-base font-semibold text-white">
-              Apresentação da campanha
+              {t("campaign.create.presentation")}
             </legend>
             <p className="mt-1 text-sm text-zinc-500">
-              Estes dados serão armazenados offchain pelo backend.
+              {t("campaign.create.offchainDescription")}
             </p>
 
             <div className="mt-5 space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
               <label className="space-y-2 text-sm text-zinc-300">
-                <span>Título</span>
+                <span>{t("campaign.create.titleLabel")}</span>
                 <input
                   name="title"
                   type="text"
                   required
                   minLength={5}
                   maxLength={80}
-                  placeholder="Ex.: Nova temporada do canal"
+                  placeholder={t("campaign.create.titlePlaceholder")}
                   className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
                 />
               </label>
 
               <label className="space-y-2 text-sm text-zinc-300">
-                <span>Categoria</span>
+                <span>{t("campaign.create.category")}</span>
                 <select
                   name="category"
                   required
@@ -281,32 +288,32 @@ export function CreateCampaignModal() {
                   className="h-11 w-full rounded-xl border border-white/15 bg-zinc-900 px-4 text-white outline-none transition focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
                 >
                   <option value="" disabled>
-                    Selecione uma categoria
+                    {t("campaign.create.selectCategory")}
                   </option>
-                  <option value="education">Educação</option>
-                  <option value="entertainment">Entretenimento</option>
-                  <option value="science">Ciência e tecnologia</option>
-                  <option value="games">Games</option>
-                  <option value="other">Outra</option>
+                  <option value="education">{t("campaign.category.education")}</option>
+                  <option value="entertainment">{t("campaign.category.entertainment")}</option>
+                  <option value="science">{t("campaign.category.science")}</option>
+                  <option value="games">{t("campaign.category.games")}</option>
+                  <option value="other">{t("campaign.category.other")}</option>
                 </select>
               </label>
               </div>
 
               <label className="block space-y-2 text-sm text-zinc-300">
-              <span>Descrição</span>
+              <span>{t("campaign.create.descriptionLabel")}</span>
               <textarea
                 name="description"
                 required
                 minLength={20}
                 maxLength={500}
                 rows={5}
-                placeholder="Explique o objetivo da campanha e como as doações serão utilizadas."
+                placeholder={t("campaign.create.descriptionPlaceholder")}
                 className="w-full resize-y rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 leading-6 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
               />
               </label>
 
               <label className="block space-y-2 text-sm text-zinc-300">
-              <span>Link do conteúdo no YouTube</span>
+              <span>{t("campaign.create.youtube")}</span>
               <input
                 name="youtubeUrl"
                 type="url"
@@ -317,10 +324,10 @@ export function CreateCampaignModal() {
               </label>
 
               <fieldset className="space-y-4 rounded-2xl border border-white/10 p-4">
-                <legend className="px-2 text-sm text-zinc-300">Imagem de capa</legend>
-                <p className="text-xs text-zinc-500">O envio por link ainda não é aceito pelo backend.</p>
+                <legend className="px-2 text-sm text-zinc-300">{t("campaign.create.cover")}</legend>
+                <p className="text-xs text-zinc-500">{t("campaign.create.linkUnsupported")}</p>
                 <label className="block space-y-2 text-sm text-zinc-300">
-                  <span>Selecione uma imagem (opcional)</span>
+                  <span>{t("campaign.create.selectImage")}</span>
                   <input
                     name="coverImage"
                     type="file"
@@ -328,8 +335,7 @@ export function CreateCampaignModal() {
                     className="block w-full cursor-pointer rounded-xl border border-dashed border-white/20 bg-white/[0.04] p-3 text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-300 file:px-4 file:py-2 file:font-medium file:text-zinc-950 hover:border-emerald-300/40"
                   />
                   <span className="block text-xs leading-5 text-zinc-500">
-                    JPG, PNG ou WebP. O navegador envia o arquivo diretamente ao S3
-                    com uma URL temporária fornecida pela API.
+                    {t("campaign.create.imageHelp")}
                   </span>
                 </label>
               </fieldset>
@@ -338,15 +344,15 @@ export function CreateCampaignModal() {
 
           <fieldset className="border-t border-white/10">
             <legend className="pr-3 text-base font-semibold text-white">
-              Meta da campanha
+              {t("campaign.create.goalSection")}
             </legend>
             <p className="mt-1 text-sm text-zinc-500">
-              A meta será convertida corretamente antes de ser enviada ao contrato.
+              {t("campaign.create.goalDescription")}
             </p>
 
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <label className="space-y-2 text-sm text-zinc-300">
-                <span>Meta em ETH</span>
+                <span>{t("campaign.create.goalLabel")}</span>
                 <input
                   name="goal"
                   type="number"
@@ -360,14 +366,14 @@ export function CreateCampaignModal() {
               </label>
 
               <label className="space-y-2 text-sm text-zinc-300">
-                <span>Data de encerramento</span>
+                <span>{t("campaign.create.deadline")}</span>
                 <input
                   name="deadline"
                   type="date"
                   className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
                 />
                 <span className="block text-xs text-zinc-500">
-                  Opcional. Sem uma data, a campanha não expira automaticamente.
+                  {t("campaign.create.deadlineHelp")}
                 </span>
               </label>
             </div>
@@ -378,8 +384,7 @@ export function CreateCampaignModal() {
               role="status"
               className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-100"
             >
-              Transação confirmada. O indexador publicará a campanha após as
-              confirmações configuradas. Acompanhe o status no painel.
+              {t("campaign.create.confirmed")}
             </div>
           )}
 
@@ -387,7 +392,7 @@ export function CreateCampaignModal() {
             <p role="status" className="text-sm text-amber-200">{registrationWarning}</p>
           )}
           {transactionHash && creationStatus === "sent" && (
-            <p className="break-all text-xs text-zinc-400">Transação enviada: {transactionHash}</p>
+            <p className="break-all text-xs text-zinc-400">{t("campaign.create.transactionSent", { hash: transactionHash })}</p>
           )}
 
           {error && (
@@ -405,21 +410,21 @@ export function CreateCampaignModal() {
               onClick={closeModal}
               className="rounded-xl px-5 py-3 text-sm font-medium text-zinc-400 transition hover:bg-white/5 hover:text-white"
             >
-              Cancelar
+              {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={isProcessing}
               className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             >
-              {creationStatus === "uploading-image" && "Enviando imagem..."}
-              {creationStatus === "saving-draft" && "Salvando rascunho..."}
-              {creationStatus === "awaiting-signature" && "Confirme na carteira..."}
-              {creationStatus === "sent" && "Aguardando confirmação..."}
+              {creationStatus === "uploading-image" && t("campaign.create.uploadingImage")}
+              {creationStatus === "saving-draft" && t("campaign.create.savingDraft")}
+              {creationStatus === "awaiting-signature" && t("wallet.confirmWallet")}
+              {creationStatus === "sent" && t("wallet.awaitingConfirmation")}
               {(creationStatus === "idle" ||
                 creationStatus === "confirmed" ||
                 creationStatus === "error") &&
-                "Criar campanha"}
+                t("campaign.create.action")}
             </button>
           </div>
         </form>

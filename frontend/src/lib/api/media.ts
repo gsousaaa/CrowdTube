@@ -8,12 +8,19 @@ export type MediaReadUrl = {
   expiresAt: string;
 };
 
+export class MediaUploadError extends Error {
+  constructor(readonly code: "INVALID_TYPE" | "UPLOAD_FAILED") {
+    super(code);
+    this.name = "MediaUploadError";
+  }
+}
+
 async function uploadImage(
   file: File,
   purpose: MediaPurpose,
 ): Promise<string> {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-    throw new Error("Escolha uma imagem JPG, PNG ou WebP.");
+    throw new MediaUploadError("INVALID_TYPE");
   }
 
   const signedUpload = await apiRequest<{
@@ -37,7 +44,7 @@ async function uploadImage(
     signal: AbortSignal.timeout(60_000),
   });
   if (!uploadResponse.ok) {
-    throw new Error("O envio da imagem ao S3 falhou. Verifique a configuração do bucket e tente novamente.");
+    throw new MediaUploadError("UPLOAD_FAILED");
   }
 
   return signedUpload.objectKey;

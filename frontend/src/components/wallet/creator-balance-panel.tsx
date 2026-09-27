@@ -8,6 +8,7 @@ import {
 } from "thirdweb/react";
 
 import { useAdminCampaigns } from "@/hooks/use-admin-campaigns";
+import { useLanguage } from "@/i18n/language-provider";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { notifyContractDataUpdated } from "@/lib/web3/contract-events";
 import { crowdTubeChain } from "@/lib/web3/network";
@@ -34,6 +35,7 @@ function formatEther(value: bigint) {
 }
 
 export function CreatorBalancePanel() {
+  const { t } = useLanguage();
   const { campaigns, status: campaignStatus, error: campaignError } = useAdminCampaigns();
   const [creatorCampaigns, setCreatorCampaigns] =
     useState<CreatorCampaignBalance[]>([]);
@@ -120,9 +122,9 @@ export function CreatorBalancePanel() {
     setError(undefined);
 
     try {
-      if (!account) throw new Error("Conecte sua carteira para realizar o saque.");
+      if (!account) throw new Error(t("wallet.connectToWithdraw"));
       if (campaignsWithBalance.length === 0) {
-        throw new Error("Não há saldo disponível para sacar.");
+        throw new Error(t("wallet.noBalance"));
       }
 
       const transaction = prepareContractCall({
@@ -146,7 +148,7 @@ export function CreatorBalancePanel() {
       setError(
         withdrawalError instanceof Error
           ? withdrawalError.message
-          : "Não foi possível concluir o saque geral.",
+          : t("wallet.withdrawError"),
       );
     }
   }
@@ -154,11 +156,11 @@ export function CreatorBalancePanel() {
   return (
     <section className="rounded-3xl border border-emerald-300/20 bg-emerald-300/[0.05] p-6 sm:p-8">
       <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/70">
-        Saldo consolidado
+        {t("wallet.consolidatedBalance")}
       </p>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-5">
         <div>
-          <p className="text-sm text-zinc-400">Disponível em suas campanhas</p>
+          <p className="text-sm text-zinc-400">{t("wallet.availableBalance")}</p>
           <p className="mt-1 text-4xl font-semibold text-emerald-300">
             {isLoadingBalances ? "..." : `${formatEther(totalAvailable)} ETH`}
           </p>
@@ -169,20 +171,20 @@ export function CreatorBalancePanel() {
           disabled={!account || campaignStatus !== "ready" || totalAvailable === 0n || isProcessing}
           className="h-11 rounded-xl bg-emerald-300 px-5 font-semibold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {status === "awaiting-signature" && "Confirme na carteira..."}
-          {status === "sent" && "Aguardando confirmação..."}
+          {status === "awaiting-signature" && t("wallet.confirmWallet")}
+          {status === "sent" && t("wallet.awaitingConfirmation")}
           {(status === "idle" || status === "confirmed" || status === "error") &&
-            "Sacar saldo total"}
+            t("wallet.withdrawAll")}
         </button>
       </div>
 
       {!account ? (
         <p className="mt-5 text-sm text-zinc-400">
-          Conecte a carteira para identificar suas campanhas.
+          {t("wallet.connectToIdentify")}
         </p>
       ) : campaignStatus === "sign-in-required" ? (
         <div className="mt-5">
-          <p className="text-sm text-zinc-400">Abra o menu da carteira acima para autenticar novamente ou trocar de carteira.</p>
+          <p className="text-sm text-zinc-400">{t("wallet.reauthenticate")}</p>
           {campaignError && <p role="alert" className="mt-2 text-sm text-amber-200">{campaignError}</p>}
         </div>
       ) : campaignStatus === "error" ? (
@@ -199,7 +201,7 @@ export function CreatorBalancePanel() {
                   {campaign.title}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Campanha #{campaign.campaignId}
+                  {t("wallet.campaignNumber", { id: campaign.campaignId })}
                 </p>
               </div>
               <p className="text-sm text-emerald-200">
@@ -209,7 +211,7 @@ export function CreatorBalancePanel() {
           ))}
           {!isLoadingBalances && visibleCreatorCampaigns.length === 0 ? (
             <p className="text-sm text-zinc-400">
-              Nenhuma campanha publicada desta carteira possui saldo disponível.
+              {t("wallet.noCampaignBalance")}
             </p>
           ) : null}
         </div>
@@ -219,7 +221,7 @@ export function CreatorBalancePanel() {
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
         {status === "confirmed" ? (
           <p className="text-sm text-emerald-200">
-            Saque geral confirmado e saldos atualizados.
+            {t("wallet.withdrawConfirmed")}
           </p>
         ) : null}
       </div>

@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 
-import { authenticateWallet } from "@/lib/api/auth";
+import { useLanguage } from "@/i18n/language-provider";
+import { authenticateWallet, AuthFlowError } from "@/lib/api/auth";
 
 type AuthStatus = "disconnected" | "authenticating" | "ready" | "error";
 
@@ -24,6 +25,7 @@ type AdminWalletAuth = {
 const AdminWalletAuthContext = createContext<AdminWalletAuth | null>(null);
 
 export function AdminWalletAuthProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useLanguage();
   const account = useActiveAccount();
   const address = account?.address.toLowerCase() ?? null;
   const accountRef = useRef(account);
@@ -52,14 +54,21 @@ export function AdminWalletAuthProvider({ children }: { children: React.ReactNod
       }
     } catch (cause) {
       if (version === attemptVersion.current) {
+        const error = cause instanceof AuthFlowError
+          ? cause.code === "NETWORK_MISMATCH"
+            ? t("wallet.authenticationNetworkMismatch")
+            : t("wallet.authenticationAccountMismatch")
+          : cause instanceof Error
+            ? cause.message
+            : t("wallet.authenticationError");
         setAuthState({
           address: currentAddress,
           status: "error",
-          error: cause instanceof Error ? cause.message : "Não foi possível autenticar a carteira.",
+          error,
         });
       }
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!address) {
@@ -87,9 +96,9 @@ export function AdminWalletAuthProvider({ children }: { children: React.ReactNod
     setAuthState({
       address,
       status: "error",
-      error: "Sua sessão expirou. Autentique a carteira novamente no menu acima.",
+      error: t("wallet.sessionExpired"),
     });
-  }, [address]);
+  }, [address, t]);
 
   const state = !address
     ? { status: "disconnected" as const, error: undefined }
