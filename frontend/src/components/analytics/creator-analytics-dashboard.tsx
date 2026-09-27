@@ -216,7 +216,7 @@ export function CreatorAnalyticsDashboard() {
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-300">
             Evolução
           </p>
-          <h2 className="mt-2 text-xl font-semibold">Arrecadação por dia</h2>
+          <h2 className="mt-2 text-xl font-semibold">Total arrecadado</h2>
         </div>
 
         {analytics && analytics.timeline.length > 0 ? (
@@ -229,28 +229,64 @@ export function CreatorAnalyticsDashboard() {
               className="flex h-64 items-end gap-3 border-b border-white/10 px-2"
               style={{ minWidth: timelineWidth }}
             >
-              {analytics.timeline.map((item) => {
+              {analytics.timeline.map((item, index) => {
                 const amount = BigInt(item.amountWei);
                 const height = maximumAmount === 0n
                   ? 0
                   : Number((amount * 100n) / maximumAmount);
+                const tooltipId = `daily-donation-summary-${item.date}`;
+                const tooltipPosition = index < 2
+                  ? "left-0"
+                  : index >= analytics.timeline.length - 2
+                    ? "right-0"
+                    : "left-1/2 -translate-x-1/2";
                 return (
                   <div
                     key={item.date}
-                    className="group grid h-full w-14 flex-none grid-rows-[minmax(0,1fr)_auto] gap-2"
+                    className="grid h-full w-14 flex-none grid-rows-[minmax(0,1fr)_auto] gap-2"
                   >
-                    <div className="relative flex min-h-0 items-end justify-center">
-                      <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-zinc-900 px-2 py-1 text-center text-[11px] text-zinc-300 opacity-0 shadow-xl transition group-hover:opacity-100">
-                        {formatEth(item.amountWei)} · {item.donationCount} doações
+                    <div className="relative flex min-h-0 flex-col">
+                      <div aria-hidden="true" className="h-25 shrink-0" />
+                      <div className="relative flex min-h-0 flex-1 items-end justify-center">
+                        <span
+                          role="img"
+                          tabIndex={0}
+                          aria-describedby={tooltipId}
+                          aria-label={`${formatChartDate(item.date)}: ${formatEth(item.amountWei)}, ${item.donationCount} doações`}
+                          className="group/bar relative block w-7 cursor-help rounded-t-lg outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                          style={{ height: amount === 0n ? 4 : `${Math.max(height, 4)}%` }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`block h-full w-full rounded-t-lg transition ${
+                              amount === 0n
+                                ? "bg-white/10"
+                                : "bg-gradient-to-t from-emerald-700 to-emerald-300 group-hover/bar:brightness-125"
+                            }`}
+                          />
+                          <span
+                            id={tooltipId}
+                            role="tooltip"
+                            className={`pointer-events-none absolute bottom-full z-20 mb-3 min-w-48 rounded-xl border border-white/10 bg-zinc-900/95 p-3 text-left opacity-0 shadow-2xl backdrop-blur transition duration-150 group-hover/bar:opacity-100 group-focus-visible/bar:opacity-100 ${tooltipPosition}`}
+                          >
+                            <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-emerald-300">
+                              {formatChartDate(item.date)}
+                            </span>
+                            <span className="mt-2 flex items-center justify-between gap-4 text-xs text-zinc-400">
+                              <span>Total arrecadado</span>
+                              <strong className="font-semibold text-zinc-100">
+                                {formatEth(item.amountWei)}
+                              </strong>
+                            </span>
+                            <span className="mt-1.5 flex items-center justify-between gap-4 text-xs text-zinc-400">
+                              <span>Quantidade de doações</span>
+                              <strong className="font-semibold text-zinc-100">
+                                {item.donationCount}
+                              </strong>
+                            </span>
+                          </span>
+                        </span>
                       </div>
-                      <div
-                        className={`w-7 rounded-t-lg transition ${
-                          amount === 0n
-                            ? "bg-white/10"
-                            : "bg-gradient-to-t from-emerald-700 to-emerald-300 group-hover:brightness-125"
-                        }`}
-                        style={{ height: `${amount === 0n ? 1 : Math.max(height, 4)}%` }}
-                      />
                     </div>
                     <time
                       className="block whitespace-nowrap pb-2 text-center text-[11px] text-zinc-500"
