@@ -5,7 +5,16 @@ import { crowdTubeChain } from "@/lib/web3/network";
 
 export type CurrentUser = {
   id: string;
+  displayName: string | null;
+  bio: string | null;
+  youtubeChannelUrl: string | null;
+  avatarObjectKey: string | null;
   authenticatedWalletAddress: string;
+};
+
+export type WalletAuthentication = {
+  user: CurrentUser;
+  isNewUser: boolean;
 };
 
 export class AuthFlowError extends Error {
@@ -26,11 +35,13 @@ export function logoutSession(): Promise<void> {
   });
 }
 
-export async function authenticateWallet(account: Account): Promise<CurrentUser> {
+export async function authenticateWallet(
+  account: Account,
+): Promise<WalletAuthentication> {
   try {
     const currentUser = await getCurrentUser();
     if (currentUser.authenticatedWalletAddress.toLowerCase() === account.address.toLowerCase()) {
-      return currentUser;
+      return { user: currentUser, isNewUser: false };
     }
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) throw error;
@@ -45,7 +56,11 @@ export async function authenticateWallet(account: Account): Promise<CurrentUser>
     throw new AuthFlowError("NETWORK_MISMATCH");
   }
   const signature = await account.signMessage({ message: challenge.message });
-  await apiRequest("/auth/verify", {
+  const verification = await apiRequest<{
+    userId: string;
+    walletAddress: string;
+    isNewUser: boolean;
+  }>("/auth/verify", {
     method: "POST",
     body: JSON.stringify({ challengeId: challenge.challengeId, signature }),
   });
@@ -54,5 +69,5 @@ export async function authenticateWallet(account: Account): Promise<CurrentUser>
   if (user.authenticatedWalletAddress.toLowerCase() !== account.address.toLowerCase()) {
     throw new AuthFlowError("ACCOUNT_MISMATCH");
   }
-  return user;
+  return { user, isNewUser: verification.isNewUser };
 }

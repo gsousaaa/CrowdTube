@@ -42,10 +42,14 @@ export function ProfileForm({
   profile,
   isSaving,
   onSave,
+  submitLabel,
+  requireDisplayName = false,
 }: {
   profile: AdminProfile;
   isSaving: boolean;
   onSave: (input: UpdateAdminProfileInput) => Promise<AdminProfile>;
+  submitLabel?: string;
+  requireDisplayName?: boolean;
 }) {
   const { intlLocale, t } = useLanguage();
   const [message, setMessage] = useState<SaveMessage>();
@@ -204,7 +208,7 @@ export function ProfileForm({
                       : t("profile.selectImage")}
                   </span>
                   <span className="mt-1 block truncate text-xs text-zinc-500">
-                    {avatarFile?.name ?? "JPG, PNG ou WebP"}
+                    {avatarFile?.name ?? t("profile.imageFormats")}
                   </span>
                 </span>
                 <input
@@ -263,6 +267,7 @@ export function ProfileForm({
                 displayName: event.target.value,
               }))}
               maxLength={100}
+              required={requireDisplayName}
               placeholder={t("profile.displayNamePlaceholder")}
               className="h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-300/60 focus:ring-2 focus:ring-emerald-300/10"
             />
@@ -321,7 +326,7 @@ export function ProfileForm({
               ? t("profile.uploadingPhoto")
               : isSaving
                 ? t("profile.saving")
-                : t("profile.save")}
+                : submitLabel ?? t("profile.save")}
           </button>
         </div>
       </form>

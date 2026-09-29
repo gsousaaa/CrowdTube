@@ -19,7 +19,7 @@ function shortenAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-export function ConnectWalletButton() {
+export function ConnectWalletButton({ connectLabel }: { connectLabel?: string } = {}) {
   const { t } = useLanguage();
   const account = useActiveAccount();
   const activeWallet = useActiveWallet();
@@ -95,7 +95,9 @@ export function ConnectWalletButton() {
           disabled={isConnecting}
           className="h-[50px] min-w-[165px] rounded-xl bg-white px-4 font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isConnecting ? t("wallet.connecting") : t("wallet.connect")}
+          {isConnecting
+            ? t("wallet.connecting")
+            : connectLabel ?? t("wallet.connect")}
         </button>
 
         {isWalletSelectorOpen ? (
