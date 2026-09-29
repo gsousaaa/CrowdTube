@@ -42,6 +42,7 @@ const envSchema = z.object({
   CAMPAIGN_CONTRACT_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
   CAMPAIGN_DEPLOY_BLOCK: z.coerce.bigint().nonnegative().optional(),
   CAMPAIGN_CONFIRMATIONS: z.coerce.number().int().positive().default(1),
+  CAMPAIGN_LOG_BATCH_SIZE: z.coerce.number().int().positive().default(500),
   CAMPAIGN_INDEXER_POLL_MS: z.coerce.number().int().min(1_000).default(10_000),
   DONATION_NOTIFICATION_POLL_MS: z.coerce
     .number()

@@ -9,7 +9,8 @@
     "deploy:local": "hardhat ignition deploy ignition/modules/DonationVault.ts",
     "deploy:localhost": "hardhat ignition deploy ignition/modules/DonationVault.ts --network localhost",
     "deploy:campaigns:local": "hardhat ignition deploy ignition/modules/CrowdTubeCampaigns.ts",
-    "deploy:campaigns:localhost": "hardhat ignition deploy ignition/modules/CrowdTubeCampaigns.ts --network localhost"
+    "deploy:campaigns:localhost": "hardhat ignition deploy ignition/modules/CrowdTubeCampaigns.ts --network localhost",
+    "deploy:campaigns:sepolia": "hardhat --network sepolia --build-profile production ignition deploy ignition/modules/CrowdTubeCampaigns.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.1.8",

@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-c7f45dffa2dd132a0e47ee96adcdde54f56f5f5c",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.15.0"
+  },
+  "userSourceNameMap": {
+    "contracts/CrowdTubeCampaigns.sol": "project/contracts/CrowdTubeCampaigns.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/CrowdTubeCampaigns.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.34;\r\n\r\ncontract CrowdTubeCampaigns {\r\n  struct Campaign {\r\n    address creator;\r\n    bytes32 metadataId;\r\n    uint256 goal;\r\n    uint256 deadline;\r\n    uint256 totalRaised;\r\n    uint256 totalWithdrawn;\r\n    bool active;\r\n  }\r\n\r\n  uint256 public nextCampaignId = 1;\r\n\r\n  mapping(uint256 campaignId => Campaign campaign) private campaigns;\r\n\r\n  bool private withdrawing;\r\n\r\n  event CampaignCreated(\r\n    uint256 indexed campaignId,\r\n    address indexed creator,\r\n    bytes32 indexed metadataId,\r\n    uint256 goal,\r\n    uint256 deadline\r\n  );\r\n  event DonationReceived(\r\n    uint256 indexed campaignId,\r\n    address indexed donor,\r\n    uint256 amount\r\n  );\r\n  event FundsWithdrawn(\r\n    uint256 indexed campaignId,\r\n    address indexed creator,\r\n    uint256 amount\r\n  );\r\n  event GeneralWithdrawal(address indexed creator, uint256 amount);\r\n  event CampaignStatusChanged(uint256 indexed campaignId, bool active);\r\n\r\n  modifier campaignExists(uint256 campaignId) {\r\n    require(campaigns[campaignId].creator != address(0), \"Campaign does not exist\");\r\n    _;\r\n  }\r\n\r\n  modifier onlyCampaignCreator(uint256 campaignId) {\r\n    require(\r\n      msg.sender == campaigns[campaignId].creator,\r\n      \"Only campaign creator can perform this action\"\r\n    );\r\n    _;\r\n  }\r\n\r\n  modifier nonReentrant() {\r\n    require(!withdrawing, \"Reentrant call\");\r\n    withdrawing = true;\r\n    _;\r\n    withdrawing = false;\r\n  }\r\n\r\n  function createCampaign(\r\n    bytes32 metadataId,\r\n    uint256 goal,\r\n    uint256 deadline\r\n  ) external returns (uint256 campaignId) {\r\n    require(metadataId != bytes32(0), \"Metadata id is required\");\r\n    require(goal > 0, \"Goal must be greater than zero\");\r\n    require(\r\n      deadline == 0 || deadline > block.timestamp,\r\n      \"Deadline must be in the future\"\r\n    );\r\n\r\n    campaignId = nextCampaignId;\r\n    nextCampaignId += 1;\r\n\r\n    campaigns[campaignId] = Campaign({\r\n      creator: msg.sender,\r\n      metadataId: metadataId,\r\n      goal: goal,\r\n      deadline: deadline,\r\n      totalRaised: 0,\r\n      totalWithdrawn: 0,\r\n      active: true\r\n    });\r\n\r\n    emit CampaignCreated(campaignId, msg.sender, metadataId, goal, deadline);\r\n  }\r\n\r\n  function donate(uint256 campaignId) external payable campaignExists(campaignId) {\r\n    Campaign storage campaign = campaigns[campaignId];\r\n\r\n    require(campaign.active, \"Campaign is not active\");\r\n    require(\r\n      campaign.deadline == 0 || block.timestamp <= campaign.deadline,\r\n      \"Campaign deadline has passed\"\r\n    );\r\n    require(msg.value > 0, \"Donation must be greater than zero\");\r\n\r\n    campaign.totalRaised += msg.value;\r\n\r\n    emit DonationReceived(campaignId, msg.sender, msg.value);\r\n  }\r\n\r\n  function withdraw(\r\n    uint256 campaignId,\r\n    uint256 amount\r\n  ) external campaignExists(campaignId) onlyCampaignCreator(campaignId) nonReentrant {\r\n    Campaign storage campaign = campaigns[campaignId];\r\n    uint256 availableBalance = campaign.totalRaised - campaign.totalWithdrawn;\r\n\r\n    require(amount > 0, \"Withdrawal amount must be greater than zero\");\r\n    require(amount <= availableBalance, \"Insufficient campaign balance\");\r\n\r\n    campaign.totalWithdrawn += amount;\r\n\r\n    (bool success, ) = payable(campaign.creator).call{value: amount}(\"\");\r\n    require(success, \"Withdrawal failed\");\r\n\r\n    emit FundsWithdrawn(campaignId, campaign.creator, amount);\r\n  }\r\n\r\n  function withdrawFromCampaigns(\r\n    uint256[] calldata campaignIds\r\n  ) external nonReentrant {\r\n    require(campaignIds.length > 0, \"At least one campaign is required\");\r\n\r\n    uint256 totalAmount;\r\n\r\n    for (uint256 index = 0; index < campaignIds.length; index += 1) {\r\n      uint256 campaignId = campaignIds[index];\r\n      Campaign storage campaign = campaigns[campaignId];\r\n\r\n      require(campaign.creator != address(0), \"Campaign does not exist\");\r\n      require(\r\n        campaign.creator == msg.sender,\r\n        \"Only campaign creator can perform this action\"\r\n      );\r\n\r\n      uint256 availableBalance =\r\n        campaign.totalRaised - campaign.totalWithdrawn;\r\n\r\n      if (availableBalance == 0) continue;\r\n\r\n      campaign.totalWithdrawn += availableBalance;\r\n      totalAmount += availableBalance;\r\n\r\n      emit FundsWithdrawn(campaignId, msg.sender, availableBalance);\r\n    }\r\n\r\n    require(totalAmount > 0, \"No funds available to withdraw\");\r\n\r\n    (bool success, ) = payable(msg.sender).call{value: totalAmount}(\"\");\r\n    require(success, \"Withdrawal failed\");\r\n\r\n    emit GeneralWithdrawal(msg.sender, totalAmount);\r\n  }\r\n\r\n  function setCampaignStatus(\r\n    uint256 campaignId,\r\n    bool active\r\n  ) external campaignExists(campaignId) onlyCampaignCreator(campaignId) {\r\n    campaigns[campaignId].active = active;\r\n\r\n    emit CampaignStatusChanged(campaignId, active);\r\n  }\r\n\r\n  function getCampaign(\r\n    uint256 campaignId\r\n  ) external view campaignExists(campaignId) returns (Campaign memory) {\r\n    return campaigns[campaignId];\r\n  }\r\n\r\n  function getAvailableBalance(\r\n    uint256 campaignId\r\n  ) external view campaignExists(campaignId) returns (uint256) {\r\n    Campaign storage campaign = campaigns[campaignId];\r\n    return campaign.totalRaised - campaign.totalWithdrawn;\r\n  }\r\n}\r\n"
+      }
+    }
+  }
+}

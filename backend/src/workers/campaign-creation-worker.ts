@@ -21,6 +21,7 @@ export function startCampaignCreationWorker(
       contractAddress: config.contractAddress,
       deployBlock: config.deployBlock,
       confirmations: config.app.CAMPAIGN_CONFIRMATIONS,
+      batchSize: BigInt(config.app.CAMPAIGN_LOG_BATCH_SIZE),
     },
     console,
   );
