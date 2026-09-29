@@ -12,11 +12,13 @@ type AuthState = {
   address: string | null;
   status: AuthStatus;
   error?: string;
+  needsProfileSetup?: boolean;
 };
 
 type AdminWalletAuth = {
   status: AuthStatus;
   error?: string;
+  needsProfileSetup: boolean;
   retry: () => Promise<void>;
   clear: () => void;
   markSessionExpired: () => void;
@@ -48,9 +50,15 @@ export function AdminWalletAuthProvider({ children }: { children: React.ReactNod
     setAuthState({ address: currentAddress, status: "authenticating" });
 
     try {
-      await authenticateWallet(currentAccount);
+      const authentication = await authenticateWallet(currentAccount);
       if (version === attemptVersion.current) {
-        setAuthState({ address: currentAddress, status: "ready" });
+        setAuthState({
+          address: currentAddress,
+          status: "ready",
+          needsProfileSetup:
+            authentication.isNewUser ||
+            !authentication.user.displayName?.trim(),
+        });
       }
     } catch (cause) {
       if (version === attemptVersion.current) {
@@ -101,15 +109,24 @@ export function AdminWalletAuthProvider({ children }: { children: React.ReactNod
   }, [address, t]);
 
   const state = !address
-    ? { status: "disconnected" as const, error: undefined }
+    ? {
+        status: "disconnected" as const,
+        error: undefined,
+        needsProfileSetup: false,
+      }
     : authState.address === address
       ? authState
-      : { status: "authenticating" as const, error: undefined };
+      : {
+          status: "authenticating" as const,
+          error: undefined,
+          needsProfileSetup: false,
+        };
 
   return (
     <AdminWalletAuthContext.Provider value={{
       status: state.status,
       error: state.error,
+      needsProfileSetup: state.needsProfileSetup ?? false,
       retry,
       clear,
       markSessionExpired,
