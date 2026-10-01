@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, MouseEvent, useRef, useState } from "react";
+import {
+  FormEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   parseEventLogs,
   prepareContractCall,
@@ -18,7 +25,11 @@ import { useAdminWalletAuth } from "@/components/wallet/admin-wallet-auth-provid
 import { type Translate, useLanguage } from "@/i18n/language-provider";
 import { createCampaignDraft, recordCampaignCreationTransaction, type CampaignCategory } from "@/lib/api/campaigns";
 import { ApiError } from "@/lib/api/client";
-import { notifyCampaignsUpdated } from "@/lib/api/events";
+import {
+  type CampaignCreationPrefill,
+  notifyCampaignsUpdated,
+  OPEN_CAMPAIGN_CREATION_EVENT,
+} from "@/lib/api/events";
 import { MediaUploadError, uploadCampaignImage } from "@/lib/api/media";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { crowdTubeChain } from "@/lib/web3/network";
@@ -49,27 +60,71 @@ function parseDeadline(input: string, t: Translate) {
   return BigInt(Math.floor(deadline.getTime() / 1_000));
 }
 
+function setFormValue(form: HTMLFormElement, name: string, value: string) {
+  const field = form.elements.namedItem(name);
+  if (
+    field instanceof HTMLInputElement ||
+    field instanceof HTMLTextAreaElement ||
+    field instanceof HTMLSelectElement
+  ) {
+    field.value = value;
+  }
+}
+
 export function CreateCampaignModal() {
   const { t } = useLanguage();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [creationStatus, setCreationStatus] = useState<CreationStatus>("idle");
   const [error, setError] = useState<string>();
   const [createdCampaignId, setCreatedCampaignId] = useState<string>();
   const [transactionHash, setTransactionHash] = useState<string>();
   const [registrationWarning, setRegistrationWarning] = useState<string>();
+  const [reusedImageObjectKey, setReusedImageObjectKey] = useState<string | null>(null);
   const account = useActiveAccount();
   const adminAuth = useAdminWalletAuth();
   const activeChain = useActiveWalletChain();
   const sendTransaction = useSendTransaction({ payModal: false });
 
-  function openModal() {
+  const openModal = useCallback((prefill?: CampaignCreationPrefill) => {
     setCreationStatus("idle");
     setError(undefined);
     setCreatedCampaignId(undefined);
     setTransactionHash(undefined);
     setRegistrationWarning(undefined);
+    setReusedImageObjectKey(prefill?.campaign.imageObjectKey ?? null);
+
+    const form = formRef.current;
+    form?.reset();
+
+    if (form && prefill) {
+      const copySuffix = ` - ${t("campaign.options.copySuffix")}`;
+      const sourceTitle = prefill.campaign.title.slice(0, 80 - copySuffix.length);
+      setFormValue(form, "title", `${sourceTitle}${copySuffix}`);
+      setFormValue(form, "category", prefill.campaign.category);
+      setFormValue(form, "description", prefill.campaign.description);
+      setFormValue(form, "youtubeUrl", prefill.campaign.youtubeUrl);
+      setFormValue(form, "goal", prefill.goalEth ?? "");
+      setFormValue(form, "deadline", prefill.deadline ?? "");
+    }
+
     dialogRef.current?.showModal();
-  }
+  }, [t]);
+
+  useEffect(() => {
+    function handleOpenCampaignCreation(event: Event) {
+      openModal((event as CustomEvent<CampaignCreationPrefill>).detail);
+    }
+
+    window.addEventListener(
+      OPEN_CAMPAIGN_CREATION_EVENT,
+      handleOpenCampaignCreation,
+    );
+    return () => window.removeEventListener(
+      OPEN_CAMPAIGN_CREATION_EVENT,
+      handleOpenCampaignCreation,
+    );
+  }, [openModal]);
 
   function closeModal() {
     dialogRef.current?.close();
@@ -116,7 +171,7 @@ export function CreateCampaignModal() {
       }
 
       const coverImage = formData.get("coverImage");
-      let imageObjectKey: string | null = null;
+      let imageObjectKey: string | null = reusedImageObjectKey;
       if (coverImage instanceof File && coverImage.size > 0) {
         setCreationStatus("uploading-image");
         imageObjectKey = await uploadCampaignImage(coverImage);
@@ -175,6 +230,7 @@ export function CreateCampaignModal() {
       setCreationStatus("confirmed");
       notifyCampaignsUpdated();
       form.reset();
+      setReusedImageObjectKey(null);
     } catch (creationError) {
       if (creationError instanceof ApiError && creationError.status === 401) {
         adminAuth.markSessionExpired();
@@ -206,7 +262,7 @@ export function CreateCampaignModal() {
     <>
       <button
         type="button"
-        onClick={openModal}
+        onClick={() => openModal()}
         className="rounded-xl border border-white/15 px-4 py-3 text-sm font-medium text-zinc-300 transition hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/60"
       >
         {t("campaign.create.action")}
@@ -249,6 +305,7 @@ export function CreateCampaignModal() {
         </div>
 
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           onInput={() => {
             setError(undefined);
@@ -337,6 +394,11 @@ export function CreateCampaignModal() {
                   <span className="block text-xs leading-5 text-zinc-500">
                     {t("campaign.create.imageHelp")}
                   </span>
+                  {reusedImageObjectKey && (
+                    <span className="block text-xs leading-5 text-emerald-200">
+                      {t("campaign.create.reusingCover")}
+                    </span>
+                  )}
                 </label>
               </fieldset>
             </div>

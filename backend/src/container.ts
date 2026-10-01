@@ -16,6 +16,7 @@ import { makeCreateCampaignAdapter } from "./adapters/campaign/create-campaign-a
 import { makeGetPublicCampaignByIdAdapter } from "./adapters/campaign/get-public-campaign-by-id-adapter";
 import { makeListCreatorCampaignsAdapter } from "./adapters/campaign/list-creator-campaigns-adapter";
 import { makeSearchPublicCampaignsAdapter } from "./adapters/campaign/search-public-campaigns-adapter";
+import { makeUpdateCampaignAdapter } from "./adapters/campaign/update-campaign-adapter";
 import { makeRecordCampaignCreationTransactionAdapter } from "./adapters/campaign/record-campaign-creation-transaction-adapter";
 import { makeListNotificationsAdapter } from "./adapters/notification/list-notifications-adapter";
 import { makeMarkNotificationsReadAdapter } from "./adapters/notification/mark-notifications-read-adapter";
@@ -52,6 +53,7 @@ import { CreateCampaignUseCase } from "./usecases/campaign/create-campaign-use-c
 import { GetPublicCampaignByIdUseCase } from "./usecases/campaign/get-public-campaign-by-id-use-case";
 import { ListCreatorCampaignsUseCase } from "./usecases/campaign/list-creator-campaigns-use-case";
 import { SearchPublicCampaignsUseCase } from "./usecases/campaign/search-public-campaigns-use-case";
+import { UpdateCampaignUseCase } from "./usecases/campaign/update-campaign-use-case";
 import { RecordCampaignCreationTransactionUseCase } from "./usecases/campaign/record-campaign-creation-transaction-use-case";
 import { ListNotificationsUseCase } from "./usecases/notification/list-notifications-use-case";
 import { MarkNotificationsReadUseCase } from "./usecases/notification/mark-notifications-read-use-case";
@@ -142,6 +144,7 @@ export function makeContainer(config: AppConfig) {
       getPublicById: new GetPublicCampaignByIdUseCase(repositories.campaigns),
       listMine: new ListCreatorCampaignsUseCase(repositories.campaigns),
       searchPublic: new SearchPublicCampaignsUseCase(repositories.campaigns),
+      update: new UpdateCampaignUseCase(repositories.campaigns),
     },
     notifications: {
       list: new ListNotificationsUseCase(repositories.notifications),
@@ -205,6 +208,9 @@ export function makeContainer(config: AppConfig) {
       }),
       searchPublic: makeSearchPublicCampaignsAdapter({
         searchPublicCampaigns: useCases.campaigns.searchPublic,
+      }),
+      update: makeUpdateCampaignAdapter({
+        updateCampaign: useCases.campaigns.update,
       }),
     },
     notifications: {

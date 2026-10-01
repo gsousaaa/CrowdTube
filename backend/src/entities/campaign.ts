@@ -26,6 +26,14 @@ export type CreateCampaignInput = {
   imageObjectKey?: string | null;
 };
 
+export type UpdateCampaignInput = {
+  title?: string;
+  category?: CampaignCategory;
+  description?: string;
+  youtubeUrl?: string;
+  imageObjectKey?: string | null;
+};
+
 export function normalizeCampaignSearchText(value: string): string {
   return value
     .normalize("NFKD")
@@ -78,5 +86,24 @@ export class Campaign {
     campaign.updatedAt = now;
 
     return campaign;
+  }
+
+  updateMetadata(input: UpdateCampaignInput): void {
+    if (input.title !== undefined) this.title = input.title.trim();
+    if (input.category !== undefined) this.category = input.category;
+    if (input.description !== undefined) {
+      this.description = input.description.trim();
+    }
+    if (input.youtubeUrl !== undefined) {
+      this.youtubeUrl = input.youtubeUrl.trim();
+    }
+    if (input.imageObjectKey !== undefined) {
+      this.imageObjectKey = input.imageObjectKey?.trim() || null;
+    }
+
+    this.searchText = normalizeCampaignSearchText(
+      [this.title, this.category, this.description].join(" "),
+    );
+    this.updatedAt = new Date();
   }
 }
