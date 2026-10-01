@@ -5,7 +5,7 @@ import { readContract } from "thirdweb";
 
 import { useLanguage } from "@/i18n/language-provider";
 import type { ApiCampaign } from "@/lib/api/campaigns";
-import { openCampaignCreation } from "@/lib/api/events";
+import { openCampaignCreation, openCampaignUpdate } from "@/lib/api/events";
 import { formatEther } from "@/lib/web3/campaign-values";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import { crowdTubeChain } from "@/lib/web3/network";
@@ -25,6 +25,14 @@ function CloneIcon() {
     <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden="true">
       <rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.8" />
       <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden="true">
+      <path d="m14.5 5.5 4 4M4 20l3.6-.8L19 7.8a2.12 2.12 0 0 0-3-3L4.8 16.2 4 20Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -97,6 +105,11 @@ export function CampaignOptionsMenu({ campaign }: { campaign: ApiCampaign }) {
     setIsOpen(false);
   }
 
+  function handleUpdate() {
+    openCampaignUpdate(campaign);
+    setIsOpen(false);
+  }
+
   return (
     <div ref={containerRef} className="absolute top-4 right-4 z-30">
       <button
@@ -136,6 +149,18 @@ export function CampaignOptionsMenu({ campaign }: { campaign: ApiCampaign }) {
             <span className="font-medium">
               {isPreparing ? t("campaign.options.preparingCopy") : t("campaign.options.clone")}
             </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isPreparing}
+            onClick={handleUpdate}
+            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-zinc-300 transition hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40 disabled:cursor-wait disabled:opacity-60"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-emerald-300">
+              <EditIcon />
+            </span>
+            <span className="font-medium">{t("campaign.options.edit")}</span>
           </button>
         </div>
       )}
