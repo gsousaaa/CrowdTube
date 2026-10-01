@@ -164,6 +164,61 @@ export function registerCampaignRoutes(
     container.controllers.campaigns.recordCreationTransaction,
   );
 
+  app.patch(
+    "/admin/campaigns/:campaignId",
+    {
+      preHandler: container.authenticationGuard,
+      schema: {
+        tags: ["Campaigns"],
+        summary: "Atualiza os metadados offchain de uma campanha",
+        description:
+          "Permite ao criador alterar dados de apresentação sem modificar o estado financeiro registrado no contrato.",
+        security: [{ cookieAuth: [] }],
+        params: {
+          type: "object",
+          additionalProperties: false,
+          required: ["campaignId"],
+          properties: {
+            campaignId: { type: "string", format: "uuid" },
+          },
+        },
+        body: {
+          type: "object",
+          additionalProperties: false,
+          minProperties: 1,
+          properties: {
+            title: { type: "string", minLength: 5, maxLength: 80 },
+            category: {
+              type: "string",
+              enum: [
+                "education",
+                "entertainment",
+                "science",
+                "games",
+                "other",
+              ],
+            },
+            description: { type: "string", minLength: 20, maxLength: 500 },
+            youtubeUrl: { type: "string", format: "uri" },
+            imageObjectKey: {
+              type: ["string", "null"],
+              minLength: 1,
+              maxLength: 1_024,
+            },
+          },
+        },
+        response: {
+          200: campaignResponse,
+          400: { $ref: "errorResponse#" },
+          401: { $ref: "errorResponse#" },
+          403: { $ref: "errorResponse#" },
+          404: { $ref: "errorResponse#" },
+        },
+      },
+    },
+    container.controllers.campaigns.update,
+  );
+
   app.get(
     "/admin/campaigns",
     {

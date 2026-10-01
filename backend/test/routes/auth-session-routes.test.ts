@@ -77,6 +77,11 @@ it("protects private routes and clears the cookie on logout", async () => {
         transactionHash: `0x${"b".repeat(64)}`,
       },
     });
+    const updateCampaignResponse = await app.inject({
+      method: "PATCH",
+      url: "/admin/campaigns/c5b54171-8094-4235-a52b-7500633642d7",
+      payload: { title: "Updated campaign title" },
+    });
     const listCampaignsResponse = await app.inject({
       method: "GET",
       url: "/admin/campaigns",
@@ -125,6 +130,7 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(invalidPublicMediaResponse.statusCode, 400);
     assert.equal(createCampaignResponse.statusCode, 401);
     assert.equal(recordCreationTransactionResponse.statusCode, 401);
+    assert.equal(updateCampaignResponse.statusCode, 401);
     assert.equal(listCampaignsResponse.statusCode, 401);
     assert.equal(listNotificationsResponse.statusCode, 401);
     assert.equal(readNotificationsResponse.statusCode, 401);

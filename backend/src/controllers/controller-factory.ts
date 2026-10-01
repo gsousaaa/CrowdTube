@@ -24,6 +24,7 @@ type ControllerFactoryDependencies = {
       getPublicById: ControllerAdapter;
       listMine: ControllerAdapter;
       searchPublic: ControllerAdapter;
+      update: ControllerAdapter;
     };
     notifications: {
       list: ControllerAdapter;
@@ -85,6 +86,9 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       searchPublic: makeBaseController({
         adapter: adapters.campaigns.searchPublic,
+      }),
+      update: makeBaseController({
+        adapter: adapters.campaigns.update,
       }),
     },
     notifications: {

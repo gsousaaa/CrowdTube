@@ -8,6 +8,7 @@ import { CreateCampaignUseCase } from "../../../src/usecases/campaign/create-cam
 import { GetPublicCampaignByIdUseCase } from "../../../src/usecases/campaign/get-public-campaign-by-id-use-case";
 import { ListCreatorCampaignsUseCase } from "../../../src/usecases/campaign/list-creator-campaigns-use-case";
 import { SearchPublicCampaignsUseCase } from "../../../src/usecases/campaign/search-public-campaigns-use-case";
+import { UpdateCampaignUseCase } from "../../../src/usecases/campaign/update-campaign-use-case";
 
 class InMemoryCampaignRepository implements CampaignRepository {
   readonly items: Campaign[] = [];
@@ -83,7 +84,9 @@ class InMemoryCampaignRepository implements CampaignRepository {
   }
 
   save(entity: Campaign): Promise<Campaign> {
-    this.items.push(entity);
+    const index = this.items.findIndex((item) => item.id === entity.id);
+    if (index >= 0) this.items[index] = entity;
+    else this.items.push(entity);
     return Promise.resolve(entity);
   }
 
@@ -135,6 +138,71 @@ describe("campaign use cases", () => {
         error.code === "CAMPAIGN_IMAGE_ACCESS_DENIED",
     );
     assert.equal(repository.items.length, 0);
+  });
+
+  it("updates a creator campaign without changing its onchain identity", async () => {
+    const repository = new InMemoryCampaignRepository();
+    const campaign = await new CreateCampaignUseCase(repository).execute(validInput);
+    campaign.status = "published";
+    campaign.chainId = 31_337;
+    campaign.contractAddress = `0x${"a".repeat(40)}`;
+    campaign.onchainCampaignId = "7";
+    const updateCampaign = new UpdateCampaignUseCase(repository);
+
+    const updated = await updateCampaign.execute({
+      campaignId: campaign.id,
+      creatorId,
+      title: "Web3 laboratory for creators",
+      imageObjectKey: `users/${creatorId}/campaign-image/cover.png`,
+    });
+
+    assert.equal(updated.title, "Web3 laboratory for creators");
+    assert.equal(updated.description, validInput.description);
+    assert.equal(updated.status, "published");
+    assert.equal(updated.chainId, 31_337);
+    assert.equal(updated.onchainCampaignId, "7");
+    assert.equal(repository.items.length, 1);
+  });
+
+  it("does not reveal or update another creator's campaign", async () => {
+    const repository = new InMemoryCampaignRepository();
+    const campaign = await new CreateCampaignUseCase(repository).execute(validInput);
+    const updateCampaign = new UpdateCampaignUseCase(repository);
+
+    await assert.rejects(
+      updateCampaign.execute({
+        campaignId: campaign.id,
+        creatorId: "3be44dd4-6ee5-4e77-835d-ab5ae22938e2",
+        title: "Attempted unauthorized update",
+      }),
+      (error: unknown) =>
+        error instanceof AppError && error.code === "CAMPAIGN_NOT_FOUND",
+    );
+    assert.equal(campaign.title, validInput.title);
+  });
+
+  it("rejects empty updates and campaign images from another creator", async () => {
+    const repository = new InMemoryCampaignRepository();
+    const campaign = await new CreateCampaignUseCase(repository).execute(validInput);
+    const updateCampaign = new UpdateCampaignUseCase(repository);
+
+    await assert.rejects(
+      updateCampaign.execute({ campaignId: campaign.id, creatorId }),
+      (error: unknown) =>
+        error instanceof AppError && error.code === "INVALID_CAMPAIGN_DATA",
+    );
+    await assert.rejects(
+      updateCampaign.execute({
+        campaignId: campaign.id,
+        creatorId,
+        imageObjectKey:
+          "users/3be44dd4-6ee5-4e77-835d-ab5ae22938e2/" +
+          "campaign-image/cover.png",
+      }),
+      (error: unknown) =>
+        error instanceof AppError &&
+        error.code === "CAMPAIGN_IMAGE_ACCESS_DENIED",
+    );
   });
 
   it("normalizes public search and excludes drafts", async () => {
