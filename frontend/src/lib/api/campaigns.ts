@@ -33,9 +33,21 @@ export type CreateCampaignInput = {
   imageObjectKey?: string | null;
 };
 
+export type UpdateCampaignInput = Partial<CreateCampaignInput>;
+
 export function createCampaignDraft(input: CreateCampaignInput): Promise<ApiCampaign> {
   return apiRequest("/admin/campaigns", {
     method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateCampaign(
+  campaignId: string,
+  input: UpdateCampaignInput,
+): Promise<ApiCampaign> {
+  return apiRequest(`/admin/campaigns/${encodeURIComponent(campaignId)}`, {
+    method: "PATCH",
     body: JSON.stringify(input),
   });
 }
