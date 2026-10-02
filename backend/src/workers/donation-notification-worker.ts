@@ -22,6 +22,8 @@ export function startDonationNotificationWorker(
       deployBlock: config.deployBlock,
       confirmations: config.app.CAMPAIGN_CONFIRMATIONS,
       batchSize: BigInt(config.app.CAMPAIGN_LOG_BATCH_SIZE),
+      maxHistoricalBatchesPerRun:
+        config.app.CAMPAIGN_MAX_HISTORICAL_BATCHES_PER_RUN,
     },
     console,
   );

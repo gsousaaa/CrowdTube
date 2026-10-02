@@ -35,8 +35,8 @@ export class TypeOrmDonationEventRepository
       .createQueryBuilder("donation_event")
       .where('donation_event."status" = :status', { status: "pending" })
       .orderBy('donation_event."last_attempted_at"', "ASC", "NULLS FIRST")
-      .addOrderBy('donation_event."block_number"', "ASC")
-      .addOrderBy('donation_event."log_index"', "ASC")
+      .addOrderBy('donation_event."block_number"', "DESC")
+      .addOrderBy('donation_event."log_index"', "DESC")
       .take(limit)
       .getMany();
   }

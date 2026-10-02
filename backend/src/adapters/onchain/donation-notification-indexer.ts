@@ -20,6 +20,7 @@ export type DonationNotificationIndexerConfig = {
   confirmations: number;
   batchSize?: bigint;
   dispatchBatchSize?: number;
+  maxHistoricalBatchesPerRun?: number;
 };
 
 type IndexerLogger = {
@@ -49,10 +50,31 @@ export class DonationNotificationIndexer {
       );
     }
 
-    if (safeHead > cursor) {
-      await this.ingestNextBatch(contractAddress, cursor, safeHead);
+    if (safeHead <= cursor) {
+      await this.dispatchPendingEvents();
+      return;
     }
 
+    const batchSize = this.config.batchSize ?? 500n;
+    const maxHistoricalBatches =
+      this.config.maxHistoricalBatchesPerRun ?? 10;
+    const recentWindowProcessed = await this.processRecentWindow(
+      cursor,
+      safeHead,
+      batchSize,
+      maxHistoricalBatches,
+    );
+
+    // Notify about current donations before spending time recovering history.
+    if (recentWindowProcessed) await this.dispatchPendingEvents();
+
+    await this.processHistoricalBatches(
+      contractAddress,
+      cursor,
+      safeHead,
+      batchSize,
+      maxHistoricalBatches,
+    );
     await this.dispatchPendingEvents();
   }
 
@@ -93,49 +115,118 @@ export class DonationNotificationIndexer {
     return BigInt(rows[0]!.last_processed_block);
   }
 
-  private async ingestNextBatch(
+  private async processRecentWindow(
+    cursor: bigint,
+    safeHead: bigint,
+    windowSize: bigint,
+    maxHistoricalBatches: number,
+  ): Promise<boolean> {
+    const candidateFromBlock = safeHead - windowSize + 1n;
+    const fromBlock = candidateFromBlock > this.config.deployBlock
+      ? candidateFromBlock
+      : this.config.deployBlock;
+    const historicalCapacity = windowSize * BigInt(maxHistoricalBatches);
+
+    if (cursor + historicalCapacity >= fromBlock) return false;
+
+    const events = await this.reader.getDonationEvents(fromBlock, safeHead);
+    const recorded = await this.dataSource.transaction(async (manager) => {
+      const donationEvents = new TypeOrmDonationEventRepository(
+        manager.getRepository(DonationEvent),
+      );
+      return new RecordDonationEventsUseCase(donationEvents).execute(events);
+    });
+
+    if (events.length > 0) {
+      this.logger.info(
+        {
+          fromBlock: fromBlock.toString(),
+          toBlock: safeHead.toString(),
+          events: events.length,
+          recorded,
+        },
+        "Recent donation events synchronized",
+      );
+    }
+
+    return true;
+  }
+
+  private async processHistoricalBatches(
+    contractAddress: string,
+    initialCursor: bigint,
+    safeHead: bigint,
+    batchSize: bigint,
+    maxBatches: number,
+  ): Promise<void> {
+    let cursor = initialCursor;
+    let processedBatches = 0;
+    let foundEvents = 0;
+    let recordedEvents = 0;
+
+    while (cursor < safeHead && processedBatches < maxBatches) {
+      const result = await this.processHistoricalBatch(
+        contractAddress,
+        cursor,
+        safeHead,
+        batchSize,
+      );
+      if (!result) break;
+
+      cursor = result.toBlock;
+      foundEvents += result.events;
+      recordedEvents += result.recorded;
+      processedBatches += 1;
+    }
+
+    if (processedBatches > 0) {
+      this.logger.info(
+        {
+          fromBlock: (initialCursor + 1n).toString(),
+          toBlock: cursor.toString(),
+          batches: processedBatches,
+          events: foundEvents,
+          recorded: recordedEvents,
+        },
+        "Historical donation events synchronized",
+      );
+    }
+  }
+
+  private async processHistoricalBatch(
     contractAddress: string,
     cursor: bigint,
     safeHead: bigint,
-  ): Promise<void> {
+    batchSize: bigint,
+  ): Promise<{ toBlock: bigint; events: number; recorded: number } | null> {
     const fromBlock = cursor + 1n;
-    const batchSize = this.config.batchSize ?? 500n;
     const toBlock = fromBlock + batchSize - 1n < safeHead
       ? fromBlock + batchSize - 1n
       : safeHead;
     const events = await this.reader.getDonationEvents(fromBlock, toBlock);
 
-    const processed = await this.dataSource.transaction(async (manager) => {
+    return this.dataSource.transaction(async (manager) => {
       const currentRows = (await manager.query(
         `SELECT "last_processed_block" FROM "chain_sync_state"
          WHERE "chain_id" = $1 AND "contract_address" = $2 AND "stream_name" = $3
          FOR UPDATE`,
         [this.config.chainId, contractAddress, streamName],
       )) as SyncStateRow[];
-      if (BigInt(currentRows[0]!.last_processed_block) !== cursor) return false;
+      if (BigInt(currentRows[0]!.last_processed_block) !== cursor) return null;
 
       const donationEvents = new TypeOrmDonationEventRepository(
         manager.getRepository(DonationEvent),
       );
-      await new RecordDonationEventsUseCase(donationEvents).execute(events);
+      const recorded = await new RecordDonationEventsUseCase(
+        donationEvents,
+      ).execute(events);
       await manager.query(
         `UPDATE "chain_sync_state" SET "last_processed_block" = $4
          WHERE "chain_id" = $1 AND "contract_address" = $2 AND "stream_name" = $3`,
         [this.config.chainId, contractAddress, streamName, toBlock.toString()],
       );
-      return true;
+      return { toBlock, events: events.length, recorded };
     });
-
-    if (processed) {
-      this.logger.info(
-        {
-          fromBlock: fromBlock.toString(),
-          toBlock: toBlock.toString(),
-          events: events.length,
-        },
-        "Donation events synchronized",
-      );
-    }
   }
 
   private async dispatchPendingEvents(): Promise<void> {
