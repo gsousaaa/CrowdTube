@@ -16,18 +16,16 @@ export class TypeOrmDonationEventRepository
     return this.repository.findOneBy({ id });
   }
 
-  findBySource(input: {
-    chainId: number;
-    contractAddress: string;
-    transactionHash: string;
-    logIndex: number;
-  }): Promise<DonationEvent | null> {
-    return this.repository.findOneBy({
-      chainId: input.chainId,
-      contractAddress: input.contractAddress.toLowerCase(),
-      transactionHash: input.transactionHash.toLowerCase(),
-      logIndex: input.logIndex,
-    });
+  async saveIfAbsent(entity: DonationEvent): Promise<boolean> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .insert()
+      .values(entity)
+      .orIgnore()
+      .returning("id")
+      .execute();
+
+    return result.raw.length > 0;
   }
 
   findPending(limit: number): Promise<DonationEvent[]> {

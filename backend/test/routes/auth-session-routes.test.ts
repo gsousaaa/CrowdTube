@@ -115,6 +115,11 @@ it("protects private routes and clears the cookie on logout", async () => {
       method: "GET",
       url: "/campaigns/not-a-uuid",
     });
+    const invalidDonationTransactionResponse = await app.inject({
+      method: "POST",
+      url: "/donations/transactions",
+      payload: { transactionHash: "0x1234" },
+    });
     const logoutResponse = await app.inject({
       method: "POST",
       url: "/auth/logout",
@@ -155,6 +160,7 @@ it("protects private routes and clears the cookie on logout", async () => {
     );
     assert.equal(invalidPublicCampaignSearchResponse.statusCode, 400);
     assert.equal(invalidPublicCampaignDetailsResponse.statusCode, 400);
+    assert.equal(invalidDonationTransactionResponse.statusCode, 400);
     assert.equal(logoutResponse.statusCode, 204);
     const setCookie = logoutResponse.headers["set-cookie"];
     assert.match(

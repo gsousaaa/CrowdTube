@@ -19,8 +19,16 @@ export class TypeOrmNotificationRepository
     });
   }
 
-  findByDonationEventId(donationEventId: string): Promise<Notification | null> {
-    return this.repository.findOneBy({ donationEventId });
+  async saveIfAbsent(entity: Notification): Promise<boolean> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .insert()
+      .values(entity)
+      .orIgnore()
+      .returning("id")
+      .execute();
+
+    return result.raw.length > 0;
   }
 
   findByUserId(userId: string, limit: number): Promise<Notification[]> {

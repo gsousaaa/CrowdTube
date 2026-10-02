@@ -26,6 +26,9 @@ type ControllerFactoryDependencies = {
       searchPublic: ControllerAdapter;
       update: ControllerAdapter;
     };
+    donations: {
+      confirmTransaction: ControllerAdapter;
+    };
     notifications: {
       list: ControllerAdapter;
       markAllRead: ControllerAdapter;
@@ -89,6 +92,11 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       }),
       update: makeBaseController({
         adapter: adapters.campaigns.update,
+      }),
+    },
+    donations: {
+      confirmTransaction: makeBaseController({
+        adapter: adapters.donations.confirmTransaction,
       }),
     },
     notifications: {

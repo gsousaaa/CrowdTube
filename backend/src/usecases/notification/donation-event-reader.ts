@@ -19,3 +19,17 @@ export interface DonationEventReader {
     toBlock: bigint,
   ): Promise<DonationReceivedEvent[]>;
 }
+
+export type DonationTransactionReceipt = {
+  blockNumber: bigint;
+  status: "success" | "reverted";
+  events: DonationReceivedEvent[];
+};
+
+export interface DonationTransactionReceiptReader {
+  getChainId(): Promise<number>;
+  getBlockNumber(): Promise<bigint>;
+  getTransactionReceipt(
+    transactionHash: string,
+  ): Promise<DonationTransactionReceipt | null>;
+}

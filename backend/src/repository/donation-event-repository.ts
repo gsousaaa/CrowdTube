@@ -3,11 +3,6 @@ import type { EntityRepository } from "./entity-repository";
 
 export interface DonationEventRepository
   extends EntityRepository<DonationEvent, string> {
-  findBySource(input: {
-    chainId: number;
-    contractAddress: string;
-    transactionHash: string;
-    logIndex: number;
-  }): Promise<DonationEvent | null>;
+  saveIfAbsent(entity: DonationEvent): Promise<boolean>;
   findPending(limit: number): Promise<DonationEvent[]>;
 }
