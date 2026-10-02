@@ -7,7 +7,7 @@ import { Campaign } from "../../../src/entities/campaign";
 import { UserWallet } from "../../../src/entities/user-wallet";
 import type { CampaignCreationEventReader } from "../../../src/usecases/campaign/campaign-creation-event-reader";
 
-it("advances a durable cursor in bounded confirmed batches", async () => {
+it("advances a durable cursor across multiple bounded confirmed batches", async () => {
   let cursor: bigint | undefined;
   const ranges: Array<[bigint, bigint]> = [];
   const query = (sql: string, params: unknown[] = []) => {
@@ -32,7 +32,7 @@ it("advances a durable cursor in bounded confirmed batches", async () => {
   } as unknown as DataSource;
   const reader: CampaignCreationEventReader = {
     getChainId: () => Promise.resolve(31_337),
-    getBlockNumber: () => Promise.resolve(10n),
+    getBlockNumber: () => Promise.resolve(13n),
     hasContract: () => Promise.resolve(true),
     getTransactionReceipt: () => Promise.resolve(null),
     getCreatedEvents: (fromBlock, toBlock) => {
@@ -46,20 +46,75 @@ it("advances a durable cursor in bounded confirmed batches", async () => {
     deployBlock: 5n,
     confirmations: 2,
     batchSize: 3n,
+    maxHistoricalBatchesPerRun: 2,
   };
   const logger = { info: () => {}, warn: () => {}, error: () => {} };
   const indexer = new CampaignCreationIndexer(dataSource, reader, config, logger);
 
   await indexer.syncOnce();
-  assert.equal(cursor, 7n);
+  assert.equal(cursor, 10n);
   await indexer.syncOnce();
-  assert.equal(cursor, 9n);
+  assert.equal(cursor, 12n);
 
   const restarted = new CampaignCreationIndexer(dataSource, reader, config, logger);
   await restarted.syncOnce();
 
-  assert.deepEqual(ranges, [[5n, 7n], [8n, 9n]]);
-  assert.equal(cursor, 9n);
+  assert.deepEqual(ranges, [
+    [5n, 7n],
+    [8n, 10n],
+    [11n, 12n],
+  ]);
+  assert.equal(cursor, 12n);
+});
+
+it("prioritizes a recent confirmed window while the historical cursor is behind", async () => {
+  let cursor = 4n;
+  const ranges: Array<[bigint, bigint]> = [];
+  const query = (sql: string, params: unknown[] = []) => {
+    if (sql.includes("INSERT INTO")) return Promise.resolve([]);
+    if (sql.includes("SELECT")) {
+      return Promise.resolve([{ last_processed_block: cursor.toString() }]);
+    }
+    if (sql.includes("UPDATE")) {
+      cursor = BigInt(params[3] as string);
+      return Promise.resolve([]);
+    }
+    throw new Error(`Unexpected query: ${sql}`);
+  };
+  const dataSource = {
+    query,
+    getRepository: () => ({ find: () => Promise.resolve([]) }),
+    transaction: (operation: (manager: EntityManager) => Promise<unknown>) =>
+      operation({ query, getRepository: () => ({}) } as unknown as EntityManager),
+  } as unknown as DataSource;
+  const reader: CampaignCreationEventReader = {
+    getChainId: () => Promise.resolve(31_337),
+    getBlockNumber: () => Promise.resolve(100n),
+    hasContract: () => Promise.resolve(true),
+    getTransactionReceipt: () => Promise.resolve(null),
+    getCreatedEvents: (fromBlock, toBlock) => {
+      ranges.push([fromBlock, toBlock]);
+      return Promise.resolve([]);
+    },
+  };
+  const indexer = new CampaignCreationIndexer(
+    dataSource,
+    reader,
+    {
+      chainId: 31_337,
+      contractAddress: "0x0000000000000000000000000000000000000001",
+      deployBlock: 5n,
+      confirmations: 2,
+      batchSize: 5n,
+      maxHistoricalBatchesPerRun: 2,
+    },
+    { info: () => {}, warn: () => {} },
+  );
+
+  await indexer.syncOnce();
+
+  assert.deepEqual(ranges, [[95n, 99n], [5n, 9n], [10n, 14n]]);
+  assert.equal(cursor, 14n);
 });
 
 it("publishes a pending campaign from its confirmed transaction receipt", async () => {
@@ -149,6 +204,7 @@ it("publishes a pending campaign from its confirmed transaction receipt", async 
       deployBlock: 5n,
       confirmations: 2,
       batchSize: 3n,
+      maxHistoricalBatchesPerRun: 1,
     },
     logger,
   );
@@ -158,7 +214,7 @@ it("publishes a pending campaign from its confirmed transaction receipt", async 
   assert.deepEqual(receiptRequests, [transactionHash]);
   assert.equal(campaign.status, "published");
   assert.equal(campaign.onchainCampaignId, "42");
-  assert.deepEqual(scannedRanges, [[5n, 7n]]);
+  assert.deepEqual(scannedRanges, [[97n, 99n], [5n, 7n]]);
   assert.equal(cursor, 7n);
 });
 

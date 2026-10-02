@@ -21,6 +21,7 @@ export type CampaignIndexerConfig = {
   confirmations: number;
   batchSize?: bigint;
   receiptBatchSize?: number;
+  maxHistoricalBatchesPerRun?: number;
 };
 
 type IndexerLogger = {
@@ -82,12 +83,105 @@ export class CampaignCreationIndexer {
 
     if (safeHead <= cursor) return;
 
-    const fromBlock = cursor + 1n;
     const batchSize = this.config.batchSize ?? 500n;
-    const toBlock =
-      fromBlock + batchSize - 1n < safeHead
-        ? fromBlock + batchSize - 1n
-        : safeHead;
+    const maxHistoricalBatches =
+      this.config.maxHistoricalBatchesPerRun ?? 10;
+    await this.processRecentWindow(
+      cursor,
+      safeHead,
+      batchSize,
+      maxHistoricalBatches,
+    );
+    await this.processHistoricalBatches(
+      contractAddress,
+      cursor,
+      safeHead,
+      batchSize,
+      maxHistoricalBatches,
+    );
+  }
+
+  private async processRecentWindow(
+    cursor: bigint,
+    safeHead: bigint,
+    windowSize: bigint,
+    maxHistoricalBatches: number,
+  ): Promise<void> {
+    const candidateFromBlock = safeHead - windowSize + 1n;
+    const fromBlock = candidateFromBlock > this.config.deployBlock
+      ? candidateFromBlock
+      : this.config.deployBlock;
+    const historicalCapacity = windowSize * BigInt(maxHistoricalBatches);
+
+    // Skip the additional RPC call when the historical loop can reach or
+    // overlap the recent window during this same execution.
+    if (cursor + historicalCapacity >= fromBlock) return;
+
+    const events = await this.reader.getCreatedEvents(fromBlock, safeHead);
+    await this.dataSource.transaction((manager) =>
+      this.applyEvents(manager, events),
+    );
+
+    if (events.length > 0) {
+      this.logger.info(
+        {
+          fromBlock: fromBlock.toString(),
+          toBlock: safeHead.toString(),
+          events: events.length,
+        },
+        "Recent campaign creation events synchronized",
+      );
+    }
+  }
+
+  private async processHistoricalBatches(
+    contractAddress: string,
+    initialCursor: bigint,
+    safeHead: bigint,
+    batchSize: bigint,
+    maxBatches: number,
+  ): Promise<void> {
+    let cursor = initialCursor;
+    let processedBatches = 0;
+    let processedEvents = 0;
+
+    while (cursor < safeHead && processedBatches < maxBatches) {
+      const result = await this.processHistoricalBatch(
+        contractAddress,
+        cursor,
+        safeHead,
+        batchSize,
+      );
+      if (!result) break;
+
+      cursor = result.toBlock;
+      processedEvents += result.events;
+      processedBatches += 1;
+    }
+
+    if (processedBatches > 0) {
+      this.logger.info(
+        {
+          fromBlock: (initialCursor + 1n).toString(),
+          toBlock: cursor.toString(),
+          batches: processedBatches,
+          events: processedEvents,
+        },
+        "Historical campaign creation events synchronized",
+      );
+    }
+  }
+
+  private async processHistoricalBatch(
+    contractAddress: string,
+    cursor: bigint,
+    safeHead: bigint,
+    batchSize: bigint,
+  ): Promise<{ toBlock: bigint; events: number } | null> {
+    const fromBlock = cursor + 1n;
+    const toBlock = fromBlock + batchSize - 1n < safeHead
+      ? fromBlock + batchSize - 1n
+      : safeHead;
     const events = await this.reader.getCreatedEvents(fromBlock, toBlock);
 
     const processed = await this.dataSource.transaction(async (manager) => {
@@ -110,12 +204,7 @@ export class CampaignCreationIndexer {
       return true;
     });
 
-    if (processed) {
-      this.logger.info(
-        { fromBlock: fromBlock.toString(), toBlock: toBlock.toString() },
-        "Campaign creation events synchronized",
-      );
-    }
+    return processed ? { toBlock, events: events.length } : null;
   }
 
   private async processPendingTransactions(
