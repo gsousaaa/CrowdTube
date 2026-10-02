@@ -1,4 +1,4 @@
-import type { DataSource, EntityManager } from "typeorm";
+import { IsNull, Not, type DataSource, type EntityManager } from "typeorm";
 
 import { Campaign } from "../../entities/campaign";
 import { UserWallet } from "../../entities/user-wallet";
@@ -20,6 +20,7 @@ export type CampaignIndexerConfig = {
   deployBlock: bigint;
   confirmations: number;
   batchSize?: bigint;
+  receiptBatchSize?: number;
 };
 
 type IndexerLogger = {
@@ -76,6 +77,9 @@ export class CampaignCreationIndexer {
         "Campaign indexer cursor is ahead of the chain. Was the local node restarted?",
       );
     }
+
+    await this.processPendingTransactions(contractAddress, safeHead);
+
     if (safeHead <= cursor) return;
 
     const fromBlock = cursor + 1n;
@@ -110,6 +114,80 @@ export class CampaignCreationIndexer {
       this.logger.info(
         { fromBlock: fromBlock.toString(), toBlock: toBlock.toString() },
         "Campaign creation events synchronized",
+      );
+    }
+  }
+
+  private async processPendingTransactions(
+    contractAddress: string,
+    safeHead: bigint,
+  ): Promise<void> {
+    const pendingCampaigns = await this.dataSource.getRepository(Campaign).find({
+      select: {
+        metadataId: true,
+        creationTransactionHash: true,
+      },
+      where: {
+        status: "pending_onchain",
+        chainId: this.config.chainId,
+        contractAddress,
+        creationTransactionHash: Not(IsNull()),
+      },
+      order: { updatedAt: "DESC" },
+      take: this.config.receiptBatchSize ?? 50,
+    });
+
+    for (const campaign of pendingCampaigns) {
+      const transactionHash = campaign.creationTransactionHash;
+      if (!transactionHash) continue;
+
+      const receipt = await this.reader
+        .getTransactionReceipt(transactionHash)
+        .catch((error: unknown) => {
+          this.logger.warn(
+            { error, metadataId: campaign.metadataId, transactionHash },
+            "Could not read campaign creation transaction receipt",
+          );
+          return null;
+        });
+      if (!receipt || receipt.blockNumber > safeHead) continue;
+
+      if (receipt.status === "reverted") {
+        this.logger.warn(
+          { metadataId: campaign.metadataId, transactionHash },
+          "Campaign creation transaction was reverted",
+        );
+        continue;
+      }
+
+      const matchingEvents = receipt.events.filter(
+        (event) =>
+          event.metadataId.toLowerCase() === campaign.metadataId.toLowerCase() &&
+          event.transactionHash.toLowerCase() === transactionHash.toLowerCase(),
+      );
+
+      if (matchingEvents.length !== 1) {
+        this.logger.warn(
+          {
+            metadataId: campaign.metadataId,
+            transactionHash,
+            matchingEventCount: matchingEvents.length,
+          },
+          "Campaign creation receipt did not contain exactly one matching event",
+        );
+        continue;
+      }
+
+      await this.dataSource.transaction((manager) =>
+        this.applyEvents(manager, matchingEvents),
+      );
+      this.logger.info(
+        {
+          metadataId: campaign.metadataId,
+          transactionHash,
+          blockNumber: receipt.blockNumber.toString(),
+        },
+        "Campaign creation transaction synchronized by receipt",
       );
     }
   }
