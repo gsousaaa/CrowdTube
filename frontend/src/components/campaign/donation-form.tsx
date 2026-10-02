@@ -10,6 +10,7 @@ import {
 import { toWei } from "thirdweb/utils";
 
 import { type Translate, useLanguage } from "@/i18n/language-provider";
+import { confirmDonationTransaction } from "@/lib/api/donations";
 import { crowdTubeCampaignsContract } from "@/lib/web3/crowdtube-campaigns-contract";
 import {
   formatEther,
@@ -150,8 +151,11 @@ export function DonationForm({ campaignId }: DonationFormProps) {
       await waitForReceipt(sentTransaction);
       setTransactionStatus("confirmed");
       setAmount("");
-      await campaign.refetch();
       notifyContractDataUpdated();
+      await Promise.allSettled([
+        campaign.refetch(),
+        confirmDonationTransaction(sentTransaction.transactionHash),
+      ]);
     } catch (transactionError) {
       setTransactionStatus("error");
       setError(getTransactionErrorMessage(transactionError, t));
