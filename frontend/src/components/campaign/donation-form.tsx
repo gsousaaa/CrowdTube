@@ -151,11 +151,11 @@ export function DonationForm({ campaignId }: DonationFormProps) {
       await waitForReceipt(sentTransaction);
       setTransactionStatus("confirmed");
       setAmount("");
-      notifyContractDataUpdated();
       await Promise.allSettled([
         campaign.refetch(),
         confirmDonationTransaction(sentTransaction.transactionHash),
       ]);
+      notifyContractDataUpdated();
     } catch (transactionError) {
       setTransactionStatus("error");
       setError(getTransactionErrorMessage(transactionError, t));

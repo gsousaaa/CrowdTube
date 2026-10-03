@@ -43,6 +43,36 @@ class InMemoryDonationEventRepository implements DonationEventRepository {
     );
   }
 
+  findByCampaignReference(input: {
+    chainId: number;
+    contractAddress: string;
+    onchainCampaignId: string;
+    offset: number;
+    limit: number;
+  }) {
+    const matches = this.items
+      .filter(
+        (item) =>
+          item.chainId === input.chainId &&
+          item.contractAddress === input.contractAddress.toLowerCase() &&
+          item.onchainCampaignId === input.onchainCampaignId,
+      )
+      .sort((left, right) => {
+        const blockDifference =
+          BigInt(right.blockNumber) - BigInt(left.blockNumber);
+        return blockDifference === 0n
+          ? right.logIndex - left.logIndex
+          : blockDifference > 0n
+            ? 1
+            : -1;
+      });
+
+    return Promise.resolve({
+      donationEvents: matches.slice(input.offset, input.offset + input.limit),
+      total: matches.length,
+    });
+  }
+
   save(entity: DonationEvent) {
     if (!this.items.includes(entity)) this.items.push(entity);
     return Promise.resolve(entity);

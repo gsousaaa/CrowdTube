@@ -10,6 +10,7 @@ import { CreateChainSyncState1790000000001 } from "./migrations/1790000000001-Cr
 import { RenameUserAvatarToObjectKey1790208000000 } from "./migrations/1790208000000-RenameUserAvatarToObjectKey";
 import { CreateDonationNotifications1790294400000 } from "./migrations/1790294400000-CreateDonationNotifications";
 import { AddDonationEventOccurredAt1790380800000 } from "./migrations/1790380800000-AddDonationEventOccurredAt";
+import { AddDonationEventCampaignHistoryIndex1790467200000 } from "./migrations/1790467200000-AddDonationEventCampaignHistoryIndex";
 import { AuthSessionSchema } from "./typeorm/entities/auth-session-schema";
 import { AuthNonceSchema } from "./typeorm/entities/auth-nonce-schema";
 import { UserSchema } from "./typeorm/entities/user-schema";
@@ -44,6 +45,7 @@ export function makeTypeOrmDataSource(config: AppConfig): DataSource {
       RenameUserAvatarToObjectKey1790208000000,
       CreateDonationNotifications1790294400000,
       AddDonationEventOccurredAt1790380800000,
+      AddDonationEventCampaignHistoryIndex1790467200000,
     ],
     synchronize: false,
     logging: config.NODE_ENV === "dev" ? ["error", "warn"] : false,
