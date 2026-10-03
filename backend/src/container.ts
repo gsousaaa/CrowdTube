@@ -19,6 +19,10 @@ import { makeListCreatorCampaignsAdapter } from "./adapters/campaign/list-creato
 import { makeSearchPublicCampaignsAdapter } from "./adapters/campaign/search-public-campaigns-adapter";
 import { makeUpdateCampaignAdapter } from "./adapters/campaign/update-campaign-adapter";
 import { makeRecordCampaignCreationTransactionAdapter } from "./adapters/campaign/record-campaign-creation-transaction-adapter";
+import {
+  makeListCreatorCampaignDonationsAdapter,
+  makeListPublicCampaignDonationsAdapter,
+} from "./adapters/campaign/list-campaign-donations-adapter";
 import { makeListNotificationsAdapter } from "./adapters/notification/list-notifications-adapter";
 import { makeMarkNotificationsReadAdapter } from "./adapters/notification/mark-notifications-read-adapter";
 import { makeConfirmDonationTransactionAdapter } from "./adapters/notification/confirm-donation-transaction-adapter";
@@ -59,6 +63,7 @@ import { ListCreatorCampaignsUseCase } from "./usecases/campaign/list-creator-ca
 import { SearchPublicCampaignsUseCase } from "./usecases/campaign/search-public-campaigns-use-case";
 import { UpdateCampaignUseCase } from "./usecases/campaign/update-campaign-use-case";
 import { RecordCampaignCreationTransactionUseCase } from "./usecases/campaign/record-campaign-creation-transaction-use-case";
+import { ListCampaignDonationsUseCase } from "./usecases/campaign/list-campaign-donations-use-case";
 import { ListNotificationsUseCase } from "./usecases/notification/list-notifications-use-case";
 import { MarkNotificationsReadUseCase } from "./usecases/notification/mark-notifications-read-use-case";
 import { ConfirmDonationTransactionUseCase } from "./usecases/notification/confirm-donation-transaction-use-case";
@@ -103,6 +108,10 @@ export function makeContainer(config: AppConfig) {
   const getProfile = new GetProfileUseCase(
     repositories.users,
     repositories.userWallets,
+  );
+  const listCampaignDonations = new ListCampaignDonationsUseCase(
+    repositories.campaigns,
+    repositories.donationEvents,
   );
   const dispatchDonationNotifications = new DispatchDonationNotificationsUseCase(
     repositories.donationEvents,
@@ -174,6 +183,7 @@ export function makeContainer(config: AppConfig) {
       create: new CreateCampaignUseCase(repositories.campaigns),
       recordCreationTransaction: new RecordCampaignCreationTransactionUseCase(repositories.campaigns),
       getPublicById: new GetPublicCampaignByIdUseCase(repositories.campaigns),
+      listDonations: listCampaignDonations,
       listMine: new ListCreatorCampaignsUseCase(repositories.campaigns),
       searchPublic: new SearchPublicCampaignsUseCase(repositories.campaigns),
       update: new UpdateCampaignUseCase(repositories.campaigns),
@@ -238,8 +248,14 @@ export function makeContainer(config: AppConfig) {
       getPublicById: makeGetPublicCampaignByIdAdapter({
         getPublicCampaignById: useCases.campaigns.getPublicById,
       }),
+      listPublicDonations: makeListPublicCampaignDonationsAdapter({
+        listCampaignDonations: useCases.campaigns.listDonations,
+      }),
       listMine: makeListCreatorCampaignsAdapter({
         listCreatorCampaigns: useCases.campaigns.listMine,
+      }),
+      listMineDonations: makeListCreatorCampaignDonationsAdapter({
+        listCampaignDonations: useCases.campaigns.listDonations,
       }),
       searchPublic: makeSearchPublicCampaignsAdapter({
         searchPublicCampaigns: useCases.campaigns.searchPublic,

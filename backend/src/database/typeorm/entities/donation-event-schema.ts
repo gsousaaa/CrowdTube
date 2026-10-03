@@ -79,5 +79,15 @@ export const DonationEventSchema = new EntitySchema<DonationEvent>({
       name: "IDX_donation_events_occurred_at",
       columns: ["occurredAt"],
     },
+    {
+      name: "IDX_donation_events_campaign_history",
+      columns: [
+        "chainId",
+        "contractAddress",
+        "onchainCampaignId",
+        "blockNumber",
+        "logIndex",
+      ],
+    },
   ],
 });
