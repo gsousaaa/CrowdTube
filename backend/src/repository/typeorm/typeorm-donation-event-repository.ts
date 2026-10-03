@@ -38,4 +38,28 @@ export class TypeOrmDonationEventRepository
       .take(limit)
       .getMany();
   }
+
+  async findByCampaignReference(input: {
+    chainId: number;
+    contractAddress: string;
+    onchainCampaignId: string;
+    offset: number;
+    limit: number;
+  }): Promise<{ donationEvents: DonationEvent[]; total: number }> {
+    const [donationEvents, total] = await this.repository.findAndCount({
+      where: {
+        chainId: input.chainId,
+        contractAddress: input.contractAddress.toLowerCase(),
+        onchainCampaignId: input.onchainCampaignId,
+      },
+      order: {
+        blockNumber: "DESC",
+        logIndex: "DESC",
+      },
+      skip: input.offset,
+      take: input.limit,
+    });
+
+    return { donationEvents, total };
+  }
 }

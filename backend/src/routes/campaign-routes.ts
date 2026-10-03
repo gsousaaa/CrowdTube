@@ -3,6 +3,62 @@ import type { FastifyInstance } from "fastify";
 import type { AppContainer } from "../container";
 
 const campaignResponse = { $ref: "campaignMetadata#" };
+const campaignDonationHistoryResponse = {
+  type: "object",
+  required: ["donations", "pagination"],
+  properties: {
+    donations: {
+      type: "array",
+      items: {
+        type: "object",
+        required: [
+          "chainId",
+          "donorAddress",
+          "amountWei",
+          "transactionHash",
+          "logIndex",
+          "blockNumber",
+          "occurredAt",
+        ],
+        properties: {
+          chainId: { type: "integer" },
+          donorAddress: { type: "string" },
+          amountWei: { type: "string", pattern: "^[0-9]+$" },
+          transactionHash: { type: "string" },
+          logIndex: { type: "integer", minimum: 0 },
+          blockNumber: { type: "string", pattern: "^[0-9]+$" },
+          occurredAt: { type: "string", format: "date-time" },
+        },
+      },
+    },
+    pagination: {
+      type: "object",
+      required: ["page", "pageSize", "total", "totalPages"],
+      properties: {
+        page: { type: "integer", minimum: 1 },
+        pageSize: { type: "integer", minimum: 1 },
+        total: { type: "integer", minimum: 0 },
+        totalPages: { type: "integer", minimum: 0 },
+      },
+    },
+  },
+};
+const campaignDonationHistoryQuery = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    page: { type: "integer", minimum: 1, default: 1 },
+    pageSize: { type: "integer", minimum: 1, maximum: 50, default: 10 },
+  },
+};
+const campaignIdParams = {
+  type: "object",
+  additionalProperties: false,
+  required: ["campaignId"],
+  properties: {
+    campaignId: { type: "string", format: "uuid" },
+  },
+};
 
 export function registerCampaignRoutes(
   app: FastifyInstance,
@@ -75,6 +131,24 @@ export function registerCampaignRoutes(
       },
     },
     container.controllers.campaigns.getPublicById,
+  );
+
+  app.get(
+    "/campaigns/:campaignId/donations",
+    {
+      schema: {
+        tags: ["Campaigns"],
+        summary: "Lista o histórico público de doações da campanha",
+        params: campaignIdParams,
+        querystring: campaignDonationHistoryQuery,
+        response: {
+          200: campaignDonationHistoryResponse,
+          400: { $ref: "errorResponse#" },
+          404: { $ref: "errorResponse#" },
+        },
+      },
+    },
+    container.controllers.campaigns.listPublicDonations,
   );
 
   app.post(
@@ -234,5 +308,26 @@ export function registerCampaignRoutes(
       },
     },
     container.controllers.campaigns.listMine,
+  );
+
+  app.get(
+    "/admin/campaigns/:campaignId/donations",
+    {
+      preHandler: container.authenticationGuard,
+      schema: {
+        tags: ["Campaigns"],
+        summary: "Lista o histórico de doações da campanha do criador",
+        security: [{ cookieAuth: [] }],
+        params: campaignIdParams,
+        querystring: campaignDonationHistoryQuery,
+        response: {
+          200: campaignDonationHistoryResponse,
+          400: { $ref: "errorResponse#" },
+          401: { $ref: "errorResponse#" },
+          404: { $ref: "errorResponse#" },
+        },
+      },
+    },
+    container.controllers.campaigns.listMineDonations,
   );
 }

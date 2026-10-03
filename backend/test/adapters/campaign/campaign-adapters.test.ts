@@ -4,6 +4,10 @@ import { describe, it } from "node:test";
 import { makeCreateCampaignAdapter } from "../../../src/adapters/campaign/create-campaign-adapter";
 import { makeGetPublicCampaignByIdAdapter } from "../../../src/adapters/campaign/get-public-campaign-by-id-adapter";
 import { makeListCreatorCampaignsAdapter } from "../../../src/adapters/campaign/list-creator-campaigns-adapter";
+import {
+  makeListCreatorCampaignDonationsAdapter,
+  makeListPublicCampaignDonationsAdapter,
+} from "../../../src/adapters/campaign/list-campaign-donations-adapter";
 import { makeSearchPublicCampaignsAdapter } from "../../../src/adapters/campaign/search-public-campaigns-adapter";
 import { makeRecordCampaignCreationTransactionAdapter } from "../../../src/adapters/campaign/record-campaign-creation-transaction-adapter";
 import { makeUpdateCampaignAdapter } from "../../../src/adapters/campaign/update-campaign-adapter";
@@ -31,6 +35,37 @@ function makeRequest(body: unknown, authenticated = true) {
 }
 
 describe("campaign adapters", () => {
+  it("maps public and creator donation history requests", async () => {
+    const campaignId = "87935afa-3524-46dd-93a5-f517bcaa7026";
+    const calls: unknown[] = [];
+    const listCampaignDonations = {
+      execute: (input: unknown) => {
+        calls.push(input);
+        return Promise.resolve({
+          donations: [],
+          pagination: { page: 2, pageSize: 5, total: 0, totalPages: 0 },
+        });
+      },
+    };
+    const publicAdapter = makeListPublicCampaignDonationsAdapter({
+      listCampaignDonations,
+    });
+    const creatorAdapter = makeListCreatorCampaignDonationsAdapter({
+      listCampaignDonations,
+    });
+    const request = makeRequest(undefined);
+    request.params = { campaignId };
+    request.query = { page: "2", pageSize: "5" };
+
+    await publicAdapter({ ...request, authenticatedUser: null });
+    await creatorAdapter(request);
+
+    assert.deepEqual(calls, [
+      { campaignId, page: 2, pageSize: 5 },
+      { campaignId, page: 2, pageSize: 5, creatorId: userId },
+    ]);
+  });
+
   it("creates metadata for the authenticated user", async () => {
     const adapter = makeCreateCampaignAdapter({
       createCampaign: {

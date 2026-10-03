@@ -87,6 +87,10 @@ it("protects private routes and clears the cookie on logout", async () => {
       method: "GET",
       url: "/admin/campaigns",
     });
+    const listCampaignDonationsResponse = await app.inject({
+      method: "GET",
+      url: "/admin/campaigns/c5b54171-8094-4235-a52b-7500633642d7/donations",
+    });
     const listNotificationsResponse = await app.inject({
       method: "GET",
       url: "/admin/notifications",
@@ -115,6 +119,10 @@ it("protects private routes and clears the cookie on logout", async () => {
       method: "GET",
       url: "/campaigns/not-a-uuid",
     });
+    const invalidPublicCampaignDonationsResponse = await app.inject({
+      method: "GET",
+      url: "/campaigns/not-a-uuid/donations",
+    });
     const invalidDonationTransactionResponse = await app.inject({
       method: "POST",
       url: "/donations/transactions",
@@ -138,6 +146,7 @@ it("protects private routes and clears the cookie on logout", async () => {
     assert.equal(recordCreationTransactionResponse.statusCode, 401);
     assert.equal(updateCampaignResponse.statusCode, 401);
     assert.equal(listCampaignsResponse.statusCode, 401);
+    assert.equal(listCampaignDonationsResponse.statusCode, 401);
     assert.equal(listNotificationsResponse.statusCode, 401);
     assert.equal(readNotificationsResponse.statusCode, 401);
     assert.equal(analyticsResponse.statusCode, 401);
@@ -160,6 +169,7 @@ it("protects private routes and clears the cookie on logout", async () => {
     );
     assert.equal(invalidPublicCampaignSearchResponse.statusCode, 400);
     assert.equal(invalidPublicCampaignDetailsResponse.statusCode, 400);
+    assert.equal(invalidPublicCampaignDonationsResponse.statusCode, 400);
     assert.equal(invalidDonationTransactionResponse.statusCode, 400);
     assert.equal(logoutResponse.statusCode, 204);
     const setCookie = logoutResponse.headers["set-cookie"];

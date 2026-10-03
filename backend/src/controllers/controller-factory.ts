@@ -22,7 +22,9 @@ type ControllerFactoryDependencies = {
       create: ControllerAdapter;
       recordCreationTransaction: ControllerAdapter;
       getPublicById: ControllerAdapter;
+      listPublicDonations: ControllerAdapter;
       listMine: ControllerAdapter;
+      listMineDonations: ControllerAdapter;
       searchPublic: ControllerAdapter;
       update: ControllerAdapter;
     };
@@ -84,8 +86,14 @@ export function makeControllers({ adapters }: ControllerFactoryDependencies) {
       getPublicById: makeBaseController({
         adapter: adapters.campaigns.getPublicById,
       }),
+      listPublicDonations: makeBaseController({
+        adapter: adapters.campaigns.listPublicDonations,
+      }),
       listMine: makeBaseController({
         adapter: adapters.campaigns.listMine,
+      }),
+      listMineDonations: makeBaseController({
+        adapter: adapters.campaigns.listMineDonations,
       }),
       searchPublic: makeBaseController({
         adapter: adapters.campaigns.searchPublic,
