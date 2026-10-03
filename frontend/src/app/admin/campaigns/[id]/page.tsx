@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 
 import { campaignCategoryLabelKeys, campaignStatusLabelKeys } from "@/components/campaign/api-campaign-card";
+import { CampaignDonationHistorySection } from "@/components/campaign/campaign-donation-history";
 import { CampaignFinancialSummary } from "@/components/campaign/campaign-financial-summary";
 import { CampaignImage } from "@/components/campaign/campaign-image";
 import { CampaignPublicLink } from "@/components/campaign/campaign-public-link";
@@ -88,6 +89,7 @@ export default function AdminCampaignDetailsPage() {
                     {campaign.creationTransactionHash && <p className="mt-3 break-all font-mono text-xs text-zinc-500">{t("common.transaction", { hash: campaign.creationTransactionHash })}</p>}
                   </section>
                 )}
+                <CampaignDonationHistorySection campaignId={campaign.id} admin />
               </div>
             </article>
           )}

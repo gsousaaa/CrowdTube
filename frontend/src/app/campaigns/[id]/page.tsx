@@ -5,6 +5,7 @@ import { notFound, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { campaignCategoryLabelKeys } from "@/components/campaign/api-campaign-card";
+import { CampaignDonationHistorySection } from "@/components/campaign/campaign-donation-history";
 import { CampaignImage } from "@/components/campaign/campaign-image";
 import { DonationForm } from "@/components/campaign/donation-form";
 import { LanguageSelector } from "@/components/layout/language-selector";
@@ -77,6 +78,7 @@ export default function PublicCampaignPage() {
                 <p className="mt-2 text-sm leading-6 text-zinc-400">{t("campaign.public.donationsUnavailableDescription")}</p>
               </section>
             )}
+            <CampaignDonationHistorySection campaignId={campaign.id} />
           </div>
         </article>
       </div>
