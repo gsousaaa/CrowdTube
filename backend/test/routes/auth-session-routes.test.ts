@@ -27,6 +27,7 @@ const config: AppConfig = {
   AWS_S3_READ_URL_TTL_SECONDS: 300,
   CAMPAIGN_CONFIRMATIONS: 1,
   CAMPAIGN_LOG_BATCH_SIZE: 500,
+  CAMPAIGN_MAX_HISTORICAL_BATCHES_PER_RUN: 10,
   CAMPAIGN_INDEXER_POLL_MS: 10_000,
   DONATION_NOTIFICATION_POLL_MS: 10_000,
 };
@@ -114,6 +115,11 @@ it("protects private routes and clears the cookie on logout", async () => {
       method: "GET",
       url: "/campaigns/not-a-uuid",
     });
+    const invalidDonationTransactionResponse = await app.inject({
+      method: "POST",
+      url: "/donations/transactions",
+      payload: { transactionHash: "0x1234" },
+    });
     const logoutResponse = await app.inject({
       method: "POST",
       url: "/auth/logout",
@@ -154,6 +160,7 @@ it("protects private routes and clears the cookie on logout", async () => {
     );
     assert.equal(invalidPublicCampaignSearchResponse.statusCode, 400);
     assert.equal(invalidPublicCampaignDetailsResponse.statusCode, 400);
+    assert.equal(invalidDonationTransactionResponse.statusCode, 400);
     assert.equal(logoutResponse.statusCode, 204);
     const setCookie = logoutResponse.headers["set-cookie"];
     assert.match(

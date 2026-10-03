@@ -2,6 +2,7 @@ import type { AppConfig } from "../config/env";
 import { makeS3Client } from "../common/lib/aws/s3/s3-client";
 import { S3MediaStorage } from "../common/lib/aws/s3/s3-media-storage";
 import { ViemWalletSignatureVerifier } from "../common/lib/viem/viem-wallet-signature-verifier";
+import { ViemDonationEventReader } from "../common/lib/viem/viem-donation-event-reader";
 import { makeCreateMediaUploadUrlAdapter } from "./adapters/media/create-media-upload-url-adapter";
 import { makeGetMediaAdapter } from "./adapters/media/get-media-adapter";
 import { makeGetProfileAdapter } from "./adapters/profile/get-profile-adapter";
@@ -20,6 +21,7 @@ import { makeUpdateCampaignAdapter } from "./adapters/campaign/update-campaign-a
 import { makeRecordCampaignCreationTransactionAdapter } from "./adapters/campaign/record-campaign-creation-transaction-adapter";
 import { makeListNotificationsAdapter } from "./adapters/notification/list-notifications-adapter";
 import { makeMarkNotificationsReadAdapter } from "./adapters/notification/mark-notifications-read-adapter";
+import { makeConfirmDonationTransactionAdapter } from "./adapters/notification/confirm-donation-transaction-adapter";
 import { makeGetCreatorAnalyticsAdapter } from "./adapters/analytics/get-creator-analytics-adapter";
 import { NodeSessionTokenManager } from "../common/lib/crypto/node-session-token-manager";
 import { makeControllers } from "./controllers/controller-factory";
@@ -29,6 +31,7 @@ import { makeTypeOrmDataSource } from "./database/typeorm-data-source";
 import { AuthNonce } from "./entities/auth-nonce";
 import { AuthSession } from "./entities/auth-session";
 import { Campaign } from "./entities/campaign";
+import { DonationEvent } from "./entities/donation-event";
 import { Notification } from "./entities/notification";
 import { User } from "./entities/user";
 import { UserWallet } from "./entities/user-wallet";
@@ -38,6 +41,7 @@ import { TypeOrmAuthNonceRepository } from "./repository/typeorm/typeorm-auth-no
 import { TypeOrmAuthSessionRepository } from "./repository/typeorm/typeorm-auth-session-repository";
 import { TypeOrmCampaignRepository } from "./repository/typeorm/typeorm-campaign-repository";
 import { TypeOrmNotificationRepository } from "./repository/typeorm/typeorm-notification-repository";
+import { TypeOrmDonationEventRepository } from "./repository/typeorm/typeorm-donation-event-repository";
 import { TypeOrmAnalyticsRepository } from "./repository/typeorm/typeorm-analytics-repository";
 import { CheckHealthUseCase } from "./usecases/check-health-use-case";
 import { AuthenticateSessionUseCase } from "./usecases/auth/authenticate-session-use-case";
@@ -57,6 +61,8 @@ import { UpdateCampaignUseCase } from "./usecases/campaign/update-campaign-use-c
 import { RecordCampaignCreationTransactionUseCase } from "./usecases/campaign/record-campaign-creation-transaction-use-case";
 import { ListNotificationsUseCase } from "./usecases/notification/list-notifications-use-case";
 import { MarkNotificationsReadUseCase } from "./usecases/notification/mark-notifications-read-use-case";
+import { ConfirmDonationTransactionUseCase } from "./usecases/notification/confirm-donation-transaction-use-case";
+import { DispatchDonationNotificationsUseCase } from "./usecases/notification/dispatch-donation-notifications-use-case";
 import { GetCreatorAnalyticsUseCase } from "./usecases/analytics/get-creator-analytics-use-case";
 
 export function makeContainer(config: AppConfig) {
@@ -81,6 +87,9 @@ export function makeContainer(config: AppConfig) {
     campaigns: new TypeOrmCampaignRepository(
       dataSource.getRepository(Campaign),
     ),
+    donationEvents: new TypeOrmDonationEventRepository(
+      dataSource.getRepository(DonationEvent),
+    ),
     notifications: new TypeOrmNotificationRepository(
       dataSource.getRepository(Notification),
     ),
@@ -95,6 +104,29 @@ export function makeContainer(config: AppConfig) {
     repositories.users,
     repositories.userWallets,
   );
+  const dispatchDonationNotifications = new DispatchDonationNotificationsUseCase(
+    repositories.donationEvents,
+    repositories.campaigns,
+    repositories.notifications,
+  );
+  const rpcUrl = config.CAMPAIGN_RPC_URL;
+  const chainId = config.CAMPAIGN_CHAIN_ID;
+  const contractAddress = config.CAMPAIGN_CONTRACT_ADDRESS;
+  const confirmDonationTransaction = rpcUrl && chainId && contractAddress
+    ? new ConfirmDonationTransactionUseCase(
+        new ViemDonationEventReader(
+          rpcUrl,
+          chainId,
+          contractAddress as `0x${string}`,
+        ),
+        repositories.donationEvents,
+        dispatchDonationNotifications,
+        {
+          chainId,
+          confirmations: config.CAMPAIGN_CONFIRMATIONS,
+        },
+      )
+    : null;
 
   const useCases = {
     checkHealth: new CheckHealthUseCase(databaseHealth),
@@ -151,6 +183,9 @@ export function makeContainer(config: AppConfig) {
       markAllRead: new MarkNotificationsReadUseCase(
         repositories.notifications,
       ),
+    },
+    donations: {
+      confirmTransaction: confirmDonationTransaction,
     },
     analytics: {
       get: new GetCreatorAnalyticsUseCase(repositories.analytics),
@@ -211,6 +246,11 @@ export function makeContainer(config: AppConfig) {
       }),
       update: makeUpdateCampaignAdapter({
         updateCampaign: useCases.campaigns.update,
+      }),
+    },
+    donations: {
+      confirmTransaction: makeConfirmDonationTransactionAdapter({
+        confirmDonationTransaction: useCases.donations.confirmTransaction,
       }),
     },
     notifications: {

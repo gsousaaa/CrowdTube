@@ -16,18 +16,16 @@ export class TypeOrmDonationEventRepository
     return this.repository.findOneBy({ id });
   }
 
-  findBySource(input: {
-    chainId: number;
-    contractAddress: string;
-    transactionHash: string;
-    logIndex: number;
-  }): Promise<DonationEvent | null> {
-    return this.repository.findOneBy({
-      chainId: input.chainId,
-      contractAddress: input.contractAddress.toLowerCase(),
-      transactionHash: input.transactionHash.toLowerCase(),
-      logIndex: input.logIndex,
-    });
+  async saveIfAbsent(entity: DonationEvent): Promise<boolean> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .insert()
+      .values(entity)
+      .orIgnore()
+      .returning("id")
+      .execute();
+
+    return result.raw.length > 0;
   }
 
   findPending(limit: number): Promise<DonationEvent[]> {
@@ -35,8 +33,8 @@ export class TypeOrmDonationEventRepository
       .createQueryBuilder("donation_event")
       .where('donation_event."status" = :status', { status: "pending" })
       .orderBy('donation_event."last_attempted_at"', "ASC", "NULLS FIRST")
-      .addOrderBy('donation_event."block_number"', "ASC")
-      .addOrderBy('donation_event."log_index"', "ASC")
+      .addOrderBy('donation_event."block_number"', "DESC")
+      .addOrderBy('donation_event."log_index"', "DESC")
       .take(limit)
       .getMany();
   }

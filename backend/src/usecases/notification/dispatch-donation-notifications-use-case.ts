@@ -32,19 +32,16 @@ export class DispatchDonationNotificationsUseCase {
         continue;
       }
 
-      const existing = await this.notifications.findByDonationEventId(event.id);
-      if (!existing) {
-        await this.notifications.save(
-          Notification.create(
-            {
-              userId: campaign.creatorId,
-              campaignId: campaign.id,
-              donationEventId: event.id,
-            },
-            this.now(),
-          ),
-        );
-      }
+      await this.notifications.saveIfAbsent(
+        Notification.create(
+          {
+            userId: campaign.creatorId,
+            campaignId: campaign.id,
+            donationEventId: event.id,
+          },
+          this.now(),
+        ),
+      );
 
       event.recordAttempt(this.now());
       event.markProcessed(this.now());

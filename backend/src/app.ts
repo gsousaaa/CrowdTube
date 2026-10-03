@@ -12,6 +12,7 @@ import { AppError } from "./errors/app-error";
 import { registerProfileRoutes } from "./routes/profile-routes";
 import { registerAuthRoutes } from "./routes/auth-routes";
 import { registerCampaignRoutes } from "./routes/campaign-routes";
+import { registerDonationRoutes } from "./routes/donation-routes";
 import { registerHealthRoutes } from "./routes/health-routes";
 import { registerMediaRoutes } from "./routes/media-routes";
 import { registerNotificationRoutes } from "./routes/notification-routes";
@@ -74,6 +75,7 @@ export async function makeApp(
   registerAuthRoutes(app, container);
   registerProfileRoutes(app, container);
   registerCampaignRoutes(app, container);
+  registerDonationRoutes(app, container);
   registerMediaRoutes(app, container);
   registerNotificationRoutes(app, container);
   registerAnalyticsRoutes(app, container);

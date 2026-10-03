@@ -43,6 +43,11 @@ const envSchema = z.object({
   CAMPAIGN_DEPLOY_BLOCK: z.coerce.bigint().nonnegative().optional(),
   CAMPAIGN_CONFIRMATIONS: z.coerce.number().int().positive().default(1),
   CAMPAIGN_LOG_BATCH_SIZE: z.coerce.number().int().positive().default(500),
+  CAMPAIGN_MAX_HISTORICAL_BATCHES_PER_RUN: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10),
   CAMPAIGN_INDEXER_POLL_MS: z.coerce.number().int().min(1_000).default(10_000),
   DONATION_NOTIFICATION_POLL_MS: z.coerce
     .number()

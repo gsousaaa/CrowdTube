@@ -4,11 +4,16 @@ import { describe, it } from "node:test";
 import { Campaign } from "../../../src/entities/campaign";
 import type { DonationEvent } from "../../../src/entities/donation-event";
 import type { Notification } from "../../../src/entities/notification";
+import { AppError } from "../../../src/errors/app-error";
 import type { CampaignRepository } from "../../../src/repository/campaign-repository";
 import type { DonationEventRepository } from "../../../src/repository/donation-event-repository";
 import type { NotificationRepository } from "../../../src/repository/notification-repository";
 import { DispatchDonationNotificationsUseCase } from "../../../src/usecases/notification/dispatch-donation-notifications-use-case";
-import type { DonationReceivedEvent } from "../../../src/usecases/notification/donation-event-reader";
+import { ConfirmDonationTransactionUseCase } from "../../../src/usecases/notification/confirm-donation-transaction-use-case";
+import type {
+  DonationReceivedEvent,
+  DonationTransactionReceiptReader,
+} from "../../../src/usecases/notification/donation-event-reader";
 import { ListNotificationsUseCase } from "../../../src/usecases/notification/list-notifications-use-case";
 import { MarkNotificationsReadUseCase } from "../../../src/usecases/notification/mark-notifications-read-use-case";
 import { RecordDonationEventsUseCase } from "../../../src/usecases/notification/record-donation-events-use-case";
@@ -20,21 +25,16 @@ class InMemoryDonationEventRepository implements DonationEventRepository {
     return Promise.resolve(this.items.find((item) => item.id === id) ?? null);
   }
 
-  findBySource(input: {
-    chainId: number;
-    contractAddress: string;
-    transactionHash: string;
-    logIndex: number;
-  }) {
-    return Promise.resolve(
-      this.items.find(
-        (item) =>
-          item.chainId === input.chainId &&
-          item.contractAddress === input.contractAddress.toLowerCase() &&
-          item.transactionHash === input.transactionHash.toLowerCase() &&
-          item.logIndex === input.logIndex,
-      ) ?? null,
+  saveIfAbsent(entity: DonationEvent) {
+    const existing = this.items.some(
+      (item) =>
+        item.chainId === entity.chainId &&
+        item.contractAddress === entity.contractAddress &&
+        item.transactionHash === entity.transactionHash &&
+        item.logIndex === entity.logIndex,
     );
+    if (!existing) this.items.push(entity);
+    return Promise.resolve(!existing);
   }
 
   findPending(limit: number) {
@@ -61,10 +61,12 @@ class InMemoryNotificationRepository implements NotificationRepository {
     return Promise.resolve(this.items.find((item) => item.id === id) ?? null);
   }
 
-  findByDonationEventId(donationEventId: string) {
-    return Promise.resolve(
-      this.items.find((item) => item.donationEventId === donationEventId) ?? null,
+  saveIfAbsent(entity: Notification) {
+    const existing = this.items.some(
+      (item) => item.donationEventId === entity.donationEventId,
     );
+    if (!existing) this.items.push(entity);
+    return Promise.resolve(!existing);
   }
 
   findByUserId(userId: string, limit: number) {
@@ -182,6 +184,98 @@ function makePublishedCampaign() {
 }
 
 describe("donation notification use cases", () => {
+  it("confirms a donation by receipt and immediately creates its notification", async () => {
+    const donationEvents = new InMemoryDonationEventRepository();
+    const notifications = new InMemoryNotificationRepository();
+    const campaigns = new InMemoryCampaignRepository();
+    campaigns.items.push(makePublishedCampaign());
+    const dispatch = new DispatchDonationNotificationsUseCase(
+      donationEvents,
+      campaigns,
+      notifications,
+    );
+    const reader: DonationTransactionReceiptReader = {
+      getChainId: () => Promise.resolve(31_337),
+      getBlockNumber: () => Promise.resolve(15n),
+      getTransactionReceipt: () => Promise.resolve({
+        blockNumber: 14n,
+        status: "success",
+        events: [{ ...sourceEvent, blockNumber: "14" }],
+      }),
+    };
+    const confirm = new ConfirmDonationTransactionUseCase(
+      reader,
+      donationEvents,
+      dispatch,
+      { chainId: 31_337, confirmations: 2 },
+    );
+
+    const firstResult = await confirm.execute(sourceEvent.transactionHash);
+    const repeatedResult = await confirm.execute(sourceEvent.transactionHash);
+
+    assert.deepEqual(firstResult, {
+      status: "confirmed",
+      transactionHash: sourceEvent.transactionHash,
+      confirmations: 2,
+      requiredConfirmations: 2,
+      donationEvents: 1,
+      recordedEvents: 1,
+    });
+    assert.equal(repeatedResult.recordedEvents, 0);
+    assert.equal(donationEvents.items.length, 1);
+    assert.equal(notifications.items.length, 1);
+  });
+
+  it("waits for confirmations before saving a donation receipt", async () => {
+    const donationEvents = new InMemoryDonationEventRepository();
+    const reader: DonationTransactionReceiptReader = {
+      getChainId: () => Promise.resolve(31_337),
+      getBlockNumber: () => Promise.resolve(15n),
+      getTransactionReceipt: () => Promise.resolve({
+        blockNumber: 15n,
+        status: "success",
+        events: [sourceEvent],
+      }),
+    };
+    const confirm = new ConfirmDonationTransactionUseCase(
+      reader,
+      donationEvents,
+      { execute: () => Promise.resolve({ processed: 0, pending: 0 }) },
+      { chainId: 31_337, confirmations: 2 },
+    );
+
+    const result = await confirm.execute(sourceEvent.transactionHash);
+
+    assert.equal(result.status, "pending");
+    assert.equal(result.confirmations, 1);
+    assert.equal(donationEvents.items.length, 0);
+  });
+
+  it("rejects a confirmed transaction without a donation event", async () => {
+    const donationEvents = new InMemoryDonationEventRepository();
+    const reader: DonationTransactionReceiptReader = {
+      getChainId: () => Promise.resolve(31_337),
+      getBlockNumber: () => Promise.resolve(15n),
+      getTransactionReceipt: () => Promise.resolve({
+        blockNumber: 15n,
+        status: "success",
+        events: [],
+      }),
+    };
+    const confirm = new ConfirmDonationTransactionUseCase(
+      reader,
+      donationEvents,
+      { execute: () => Promise.resolve({ processed: 0, pending: 0 }) },
+      { chainId: 31_337, confirmations: 1 },
+    );
+
+    await assert.rejects(
+      confirm.execute(sourceEvent.transactionHash),
+      (error: unknown) =>
+        error instanceof AppError && error.code === "DONATION_EVENT_NOT_FOUND",
+    );
+  });
+
   it("records the same blockchain log only once", async () => {
     const donationEvents = new InMemoryDonationEventRepository();
     const useCase = new RecordDonationEventsUseCase(donationEvents);

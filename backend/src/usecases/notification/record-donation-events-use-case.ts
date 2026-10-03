@@ -9,15 +9,7 @@ export class RecordDonationEventsUseCase {
     let recorded = 0;
 
     for (const event of events) {
-      const existing = await this.donationEvents.findBySource({
-        chainId: event.chainId,
-        contractAddress: event.contractAddress,
-        transactionHash: event.transactionHash,
-        logIndex: event.logIndex,
-      });
-      if (existing) continue;
-
-      await this.donationEvents.save(
+      const wasInserted = await this.donationEvents.saveIfAbsent(
         DonationEvent.create({
           chainId: event.chainId,
           contractAddress: event.contractAddress,
@@ -30,7 +22,7 @@ export class RecordDonationEventsUseCase {
           occurredAt: event.occurredAt,
         }),
       );
-      recorded += 1;
+      if (wasInserted) recorded += 1;
     }
 
     return recorded;
