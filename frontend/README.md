@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CrowdTube frontend
 
-## Getting Started
+The frontend is a Next.js 16 application for creators, supporters, and public visitors. It combines backend API data with direct smart-contract reads and wallet-approved writes through thirdweb.
 
-First, run the development server:
+## Main routes
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Wallet login and first-profile onboarding |
+| `/campaigns` | Public campaign search and pagination |
+| `/campaigns/[id]` | Public campaign details, donation form, and history |
+| `/admin` | Creator campaign dashboard |
+| `/admin/campaigns/[id]` | Campaign management, withdrawal, and history |
+| `/admin/profile` | Creator profile management |
+| `/admin/wallet` | Consolidated campaign balances and withdrawal |
+| `/admin/analytics` | Donation analytics dashboard |
+
+## Development
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Copy `.env.example` to `.env` and configure:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Thirdweb client ID.
+- `hardhat` or `sepolia` network.
+- Address of `CrowdTubeCampaigns` on that network.
+- Backend API URL.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open <http://localhost:3000>.
 
-## Learn More
+## Commands
 
-To learn more about Next.js, take a look at the following resources:
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Next.js in development mode |
+| `npm run build` | Create a production build |
+| `npm start` | Run the production build |
+| `npm run lint` | Run ESLint |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Data access
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/lib/api` contains backend HTTP calls and always sends session cookies.
+- `src/lib/web3` selects the chain and creates the contract client.
+- Contract reads show authoritative financial state.
+- Contract writes are signed by the connected browser wallet.
+- English and Portuguese messages live in `src/i18n/messages`.
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Complete local setup](../docs/getting-started.md)
+- [Project structure](../docs/project-structure.md)
+- [Architecture](../docs/architecture.md)
+- [Wallet authentication](../docs/flows/authentication.md)
+- [Campaign creation](../docs/flows/campaign-creation.md)
+- [Donation flow](../docs/flows/donation.md)
+- [Withdrawal flow](../docs/flows/withdrawal.md)

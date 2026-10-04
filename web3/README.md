@@ -1,29 +1,52 @@
-# CrowdTube Web3
+# CrowdTube smart contracts
 
-Contratos inteligentes do CrowdTube desenvolvidos com Solidity e Hardhat 3.
+Solidity contracts, tests, and Hardhat Ignition deployments for CrowdTube.
 
-Nesta fase, o projeto usa somente uma rede Ethereum simulada localmente. Nenhuma
-chave privada ou conexão com a Sepolia é necessária.
+The main application contract is `contracts/CrowdTubeCampaigns.sol`. It supports multiple campaigns, ETH donations, pause/resume controls, individual withdrawals, and consolidated creator withdrawals.
 
-## Comandos
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run build` | Compile Solidity and generate artifacts |
+| `npm test` | Run contract tests on an ephemeral chain |
+| `npm run node` | Start a persistent local Hardhat node |
+| `npm run deploy:campaigns:local` | Deploy on an ephemeral simulated network |
+| `npm run deploy:campaigns:localhost` | Deploy to the running local node |
+| `npm run deploy:campaigns:sepolia` | Deploy to Sepolia with the optimized profile |
+| `npm run deploy:local` | Deploy the standalone `DonationVault` example locally |
+| `npm run deploy:localhost` | Deploy `DonationVault` to the running local node |
+
+## Local workflow
+
+Terminal 1:
 
 ```bash
-npm run build
-npm test
-npm run deploy:local
+npm ci
 npm run node
-npm run deploy:localhost
 ```
 
-- `build`: compila Solidity e gera bytecode e ABI em `artifacts/`.
-- `test`: cria uma blockchain temporária e executa os testes.
-- `deploy:local`: publica o contrato em uma blockchain temporária usando Ignition.
-- `node`: inicia uma blockchain local persistente em `http://127.0.0.1:8545`.
-- `deploy:localhost`: publica o contrato no node local que já está em execução.
+Terminal 2:
 
-## Estrutura
+```bash
+npm run deploy:campaigns:localhost
+```
 
-- `contracts/`: código Solidity executado pela EVM.
-- `test/`: testes TypeScript com `node:test` e Viem.
-- `ignition/modules/`: descrição reproduzível do deploy.
-- `hardhat.config.ts`: compilador, plugins e redes disponíveis.
+Copy the deployed address into both backend and frontend environment files. Use deployment block `0` for a fresh local chain.
+
+## Sepolia
+
+Provide `SEPOLIA_RPC_URL` and `SEPOLIA_PRIVATE_KEY` through the shell or secret manager, then run:
+
+```bash
+npm run deploy:campaigns:sepolia
+```
+
+The private key is used only to deploy the contract. It must never be copied into the frontend or backend application configuration.
+
+## Documentation
+
+- [Smart contracts and Web3](../docs/web3.md)
+- [Complete local setup](../docs/getting-started.md)
+- [Configuration reference](../docs/configuration.md)
+- [Deployment](../docs/deployment.md)
