@@ -52,12 +52,14 @@ Deploy only from a reviewed commit with a clean working tree.
 
 The deployment account pays gas only for contract deployment. CrowdTube users always sign their own transactions.
 
-Provide the Hardhat configuration variables in the shell or CI secret store:
+The recommended local setup stores the values in Hardhat's encrypted keystore. Run these commands from `web3` and enter the values only when prompted:
 
-```text
-SEPOLIA_RPC_URL=<SEPOLIA_RPC_ENDPOINT>
-SEPOLIA_PRIVATE_KEY=<DEPLOYER_PRIVATE_KEY>
+```bash
+npx hardhat keystore set SEPOLIA_RPC_URL
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY
 ```
+
+Use a CI secret store instead when deploying from an automated pipeline. See [Hardhat deployment environment](configuration.md#hardhat-deployment-environment) for the variable formats, temporary shell alternative, and security guidance.
 
 Then run:
 

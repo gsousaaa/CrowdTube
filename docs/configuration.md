@@ -82,14 +82,66 @@ The local Hardhat chain RPC is defined in source as `http://127.0.0.1:8545`. Sep
 
 ## Hardhat deployment environment
 
-The Sepolia network reads these values through Hardhat configuration variables:
+The `web3/hardhat.config.ts` file declares the Sepolia settings with Hardhat's `configVariable` function. Hardhat resolves the following names only when a command actually uses the Sepolia network:
 
 | Variable | Required for Sepolia deploy | Description |
 | --- | --- | --- |
 | `SEPOLIA_RPC_URL` | Yes | RPC endpoint that supports transaction submission |
 | `SEPOLIA_PRIVATE_KEY` | Yes | Private key of the deployer wallet |
 
-These values are needed only while running the Hardhat deployment. Application users connect and sign with their own wallets; the API and worker do not need the deployer key.
+These values are needed only while running the Hardhat deployment. Application users connect and sign with their own wallets; the frontend, API, and workers do not need the deployer key.
+
+### Recommended: encrypted Hardhat keystore
+
+Run the following commands from `web3`:
+
+```bash
+npx hardhat keystore set SEPOLIA_RPC_URL
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```
+
+Hardhat asks for each value interactively, so the secret is not written in the command itself. The first command also asks you to create a keystore password. Keep this password in a password manager: Hardhat will request it when a later command needs one of the encrypted values.
+
+Use your QuickNode Sepolia endpoint as `SEPOLIA_RPC_URL`. Use the private key of a dedicated deployer wallet as `SEPOLIA_PRIVATE_KEY`; it must be a 32-byte hexadecimal value, normally prefixed with `0x`. Fund this wallet only with enough Sepolia ETH to deploy and test the contract.
+
+Check which variable names are stored without displaying their values:
+
+```bash
+npx hardhat keystore list
+```
+
+After both entries exist, deploy with:
+
+```bash
+npm run deploy:campaigns:sepolia
+```
+
+The encrypted keystore is managed outside the project and must not be committed. Do not use the unencrypted development keystore (`--dev`) for a real Sepolia private key.
+
+### Alternative: temporary shell variables
+
+For a single PowerShell session:
+
+```powershell
+$env:SEPOLIA_RPC_URL="https://your-sepolia-endpoint"
+$env:SEPOLIA_PRIVATE_KEY="0xyour-private-key"
+npm run deploy:campaigns:sepolia
+
+Remove-Item Env:SEPOLIA_RPC_URL
+Remove-Item Env:SEPOLIA_PRIVATE_KEY
+```
+
+For a single Unix-like shell session:
+
+```bash
+export SEPOLIA_RPC_URL="https://your-sepolia-endpoint"
+export SEPOLIA_PRIVATE_KEY="0xyour-private-key"
+npm run deploy:campaigns:sepolia
+
+unset SEPOLIA_RPC_URL SEPOLIA_PRIVATE_KEY
+```
+
+The values disappear when that terminal process ends. Avoid putting the private key in shell history, screenshots, logs, CI output, or a committed file. Hardhat 3 does not automatically load these configuration variables from `web3/.env`; use the encrypted keystore, process environment, or a CI secret manager.
 
 ## Values that must agree
 

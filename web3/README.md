@@ -36,13 +36,20 @@ Copy the deployed address into both backend and frontend environment files. Use 
 
 ## Sepolia
 
-Provide `SEPOLIA_RPC_URL` and `SEPOLIA_PRIVATE_KEY` through the shell or secret manager, then run:
+Store the Sepolia RPC URL and the dedicated deployer key in Hardhat's encrypted keystore:
+
+```bash
+npx hardhat keystore set SEPOLIA_RPC_URL
+npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```
+
+Then run:
 
 ```bash
 npm run deploy:campaigns:sepolia
 ```
 
-The private key is used only to deploy the contract. It must never be copied into the frontend or backend application configuration.
+The private key is used only to deploy the contract. It must never be copied into the frontend or backend application configuration. See [Hardhat deployment environment](../docs/configuration.md#hardhat-deployment-environment) for value formats, temporary shell configuration, and secret-handling details.
 
 ## Documentation
 

@@ -77,6 +77,8 @@ Hardhat starts an RPC server at `http://127.0.0.1:8545`, using chain ID `31337`.
 
 These keys are public test credentials. Use them only on the local chain.
 
+The local network does not require `SEPOLIA_RPC_URL` or `SEPOLIA_PRIVATE_KEY`. Configure those values only when you are ready to deploy to Sepolia, preferably with the [encrypted Hardhat keystore](configuration.md#recommended-encrypted-hardhat-keystore).
+
 ## 5. Deploy the main contract locally
 
 In another terminal:
